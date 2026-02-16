@@ -1,0 +1,1602 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+        /* Estilos Gerais */
+        .form-control, select, input[type="text"], input[type="date"], input[type="time"], textarea {
+            background-color: #334155; border-color: #475569; color: #e2e8f0;
+            border-radius: 0.375rem; padding: 0.5rem; width: 100%; display: block;
+        }
+        .form-control:focus { outline: 2px solid #6366f1; border-color: #6366f1; }
+        select option { color: #1e293b; color: #e2e8f0; }
+        input[type="checkbox"] { width: 1.1rem; height: 1.1rem; accent-color: #10b981; cursor: pointer; }
+
+        /* Select2 Dark */
+        .select2-container { width: 100% !important; }
+        .select2-container--default .select2-selection--single {
+            background-color: #334155 !important; border-color: #475569 !important;
+            color: #e2e8f0 !important; height: 42px; border-radius: 0.375rem; display: flex; align-items: center;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #e2e8f0 !important; line-height: 42px; padding-left: 12px;
+        }
+        .select2-dropdown { background-color: #1e293b !important; border-color: #475569 !important; color: #e2e8f0; }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            background-color: #334155 !important; border: 1px solid #475569 !important; color: white !important;
+        }
+        .select2-results__option--highlighted.select2-results__option--selectable {
+            background-color: #6366f1 !important; color: white !important;
+        }
+        .errorlist { list-style: none; padding: 0; margin: 0; }
+        
+        /* Grid do Calendário */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+
+        /* Estilos Específicos do Rateio */
+        .select2-wrapper-flex { flex: 1 1 auto; min-width: 0; }
+        .tipo-seletor-fixo { width: 90px !important; flex-shrink: 0; }
+        .btn-remover-obra { flex-shrink: 0; width: 40px; }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Animação dos ícones dentro do Switch */
+        #mode-toggle:checked ~ #switch-knob .icon-manual {
+            opacity: 0;
+            transform: scale(0.5) rotate(-90deg);
+        }
+
+        #mode-toggle:checked ~ #switch-knob .icon-checkin {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 p-4 sm:p-8 flex justify-center">
+
+    <div id="page-loader" class="fixed inset-0 bg-slate-950 z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+        <p class="text-indigo-400 font-bold animate-pulse">Sincronizando Cronômetro...</p>
+    </div>
+
+    <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-2">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flex items-center p-4 mb-4 text-sm text-emerald-800 rounded-lg bg-emerald-50 border border-emerald-500 shadow-lg" role="alert">
+                    <svg class="flex-shrink-0 inline w-5 h-5 me-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg>
+                    <div><span class="font-medium">Aviso!</span> {{ message }}</div>
+                    <button type="button" class="ms-auto -mx-1.5 -my-1.5 bg-emerald-50 text-emerald-500 rounded-lg p-1.5 hover:bg-emerald-200 h-8 w-8 flex items-center justify-center" onclick="this.parentElement.remove()">
+                        <span class="sr-only">Fechar</span><svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+        <script>setTimeout(function() { const t = document.querySelectorAll('#toast-message'); t.forEach(e => e.remove()); }, 4000);</script>
+
+
+    <div class="w-full max-w-4xl">
+        <div class="mb-6 border-b border-slate-800 pb-4 flex flex-col md:flex-row items-center justify-between relative gap-4">
+            <div>
+                <h2 class="text-3xl font-bold text-white">{{ titulo }}</h2>
+                
+                <div class="flex flex-col items-start gap-2 mt-1">
+                    
+                    <p class="text-gray-400 text-sm">
+                        {% if is_editing %}Editando Registro #{{ apontamento_id }}{% else %}Novo Apontamento{% endif %}
+                    </p>
+
+                    <div id="gps-status" class="inline-flex items-center gap-2 text-xs font-bold text-gray-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Buscando GPS...</span>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-3">
+                {% if not is_editing %}
+                <div class="flex items-center gap-3 bg-slate-900/80 p-2.5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm {% if atividade_em_andamento %}opacity-50 pointer-events-none{% endif %}">
+                    
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest cursor-pointer transition-colors hover:text-white" onclick="document.getElementById('mode-toggle').click()">
+                        Manual
+                    </span>
+
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="mode-toggle" class="sr-only peer" {% if atividade_em_andamento %}checked disabled{% endif %}>
+                        
+                        <div class="w-14 h-7 bg-slate-800 border border-slate-700 rounded-full shadow-inner peer-focus:ring-2 peer-focus:ring-indigo-500/50 peer-checked:bg-slate-800 transition-colors"></div>
+
+                        <div id="switch-knob" class="absolute left-1 top-1 bg-gradient-to-br from-indigo-500 to-indigo-600 w-5 h-5 rounded-full shadow-lg transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] peer-checked:translate-x-7 peer-checked:from-emerald-500 peer-checked:to-emerald-600 flex items-center justify-center text-white z-10 pointer-events-none">
+                            <svg class="icon-manual w-3 h-3 absolute transition-all duration-300 opacity-100 scale-100 rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <svg class="icon-checkin w-3.5 h-3.5 absolute transition-all duration-300 opacity-0 scale-50 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </label>
+
+                    <span class="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest cursor-pointer transition-colors hover:text-emerald-400" onclick="document.getElementById('mode-toggle').click()">
+                        Check-in
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="flex items-center gap-4">
+                    <a href="{% url 'produtividade:historico_apontamentos' %}" class="text-indigo-400 hover:text-white border border-indigo-400/30 hover:border-indigo-400 bg-indigo-400/10 hover:bg-indigo-400/20 rounded-md px-4 py-2 text-sm font-medium transition-all flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg>Ver Histórico
+                    </a>
+
+                    <div class="relative group z-50">
+                        <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                            {% if notificacoes_nao_lidas_count > 0 %}
+                            <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                            {% endif %}
+                        </button>
+
+                        <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                            <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                <h3 class="text-sm font-bold text-white">Notificações</h3>
+                                {% if notificacoes_nao_lidas_count > 0 %}
+                                <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                                {% endif %}
+                            </div>
+                            <div class="max-h-64 overflow-y-auto">
+                                {% for notif in notificacoes_usuario %}
+                                <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                                    class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                        <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                                </div>
+                                {% empty %}
+                                <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                        <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div class="flex min-h-full items-center justify-center p-4">
+                                <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                                    <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                        <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                        <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                                    </div>
+                                    <div class="p-6">
+                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                            <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                        </div>
+                                        
+                                        <form id="form-responder-notificacao" method="POST">
+                                            {% csrf_token %}
+                                            <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                            <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                            <div class="mt-4 flex justify-end">
+                                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative group z-50">
+                        <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                            {{ user.username|slice:":1"|upper }}
+                        </div>
+
+                        <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                            
+                            <div class="px-4 py-3 border-b border-slate-700">
+                                <p class="text-sm text-white font-bold truncate">
+                                    {% if user.first_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-400 truncate">Conectado</p>
+                            </div>
+
+                            <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                Configurações
+                            </a>
+
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                        <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                    Sair do Sistema
+                                </button>
+                            </form>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6" id="apontamentoForm" onsubmit="event.preventDefault();">
+            {% csrf_token %}
+            <input type="hidden" name="tipo_acao" id="id_tipo_acao" value="MANUAL">
+            {{ form.data_dorme_fora }} 
+            {{ form.latitude }}
+            {{ form.longitude }}
+            
+            <div id="server-error-container" class="hidden">
+                {% if form.non_field_errors %}
+                    <div id="server-error-data">{{ form.non_field_errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
+                <h3 class="text-indigo-400 font-bold mb-6 text-lg uppercase tracking-wider">Identificação</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label class="text-xs text-gray-400 mb-1 block">Colaborador *</label>{{ form.colaborador }}</div>
+                    <div><label class="text-xs text-gray-400 mb-1 block">Cargo</label>{{ form.cargo_colaborador }}</div>
+                    
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Data *</label>
+                        {{ form.data_apontamento }}
+                    </div>
+
+                    <div><label class="text-xs text-white font-bold mb-1 block">Local de Trabalho *</label>{{ form.local_execucao }}</div>
+                    <div class="md:col-span-2 bg-slate-800/50 p-4 rounded border border-slate-700">
+                        <div class="flex items-center gap-3">
+                            {{ form.registrar_veiculo }}
+                            <label for="{{ form.registrar_veiculo.id_for_label }}" class="font-bold text-sm cursor-pointer select-none">Adicionar veículo</label>
+                        </div>
+                        <div id="veiculo-container" class="hidden mt-3 space-y-3">
+                            <div><label class="text-xs text-gray-400 mb-1 block">Selecione o Veículo</label>{{ form.veiculo_selecao }}</div>
+                            <div id="novo-veiculo-container" class="hidden grid grid-cols-2 gap-4 border-l-2 border-indigo-500 pl-3 mt-2 bg-slate-800 p-2 rounded">
+                                <div><label class="text-xs text-indigo-400 block mb-1">Modelo (Ex: HB20) *</label>{{ form.veiculo_manual_modelo }}</div>
+                                <div><label class="text-xs text-indigo-400 block mb-1">Placa (7 dígitos) *</label>{{ form.veiculo_manual_placa }}{% if form.veiculo_manual_placa.errors %}<p class="text-red-400 text-xs">{{ form.veiculo_manual_placa.errors }}</p>{% endif %}</div>
+                            </div>
+                            {% if form.veiculo_selecao.errors %}<p class="text-red-400 text-xs mt-1">{{ form.veiculo_selecao.errors }}</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="container-obra" class="hidden bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                <h3 class="text-emerald-400 font-bold mb-6 text-lg uppercase tracking-wider">Dados da Obra</h3>
+                <div id="inputs-obra-wrapper" class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                    <p class="text-xs text-yellow-500 font-bold mb-2 uppercase">Código do Cliente apenas setores que não possuirem o adendo</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="text-xs text-emerald-300 mb-1 block font-bold">Código da Obra (com adendo)</label>{{ form.projeto }}<p class="text-[10px] text-gray-500 mt-1">Ex: R1894A00 - Vintage...</p></div>
+                        <div><label class="text-xs text-blue-300 mb-1 block font-bold">Código do Cliente (Geral)</label>{{ form.codigo_cliente }}<p class="text-[10px] text-gray-500 mt-1">Ex: 1894 - Vintage...</p></div>
+                        
+                        {% if form.registrar_multiplas_obras %}
+                            <div class="mt-1 pt-4 border-t border-slate-700 md:col-span-2">
+                                <div class="hidden">{{ form.registrar_multiplas_obras }}</div> 
+                                {{ form.obras_extras_list }}
+                                <div id="obras-extras-wrapper" class="space-y-3 mb-1"></div>
+                                <button type="button" id="btn-add-obra" class="text-xs font-bold text-indigo-400 hover:text-white transition-colors flex items-center gap-1">
+                                    + Add. Obra para Rateio
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div id="insertion-point-obra" class="mt-6"></div>
+            </div>
+
+            <div id="container-fora" class="hidden bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-orange-500"></div>
+                <h3 class="text-orange-400 font-bold mb-6 text-lg uppercase tracking-wider">Fora da Obra</h3>
+                <div class="mb-6"><label class="text-xs text-orange-400 font-bold mb-1 block">Setor / Justificativa (Custo) *</label>{{ form.centro_custo }}</div>
+                <div id="dynamic-obra-injection"></div><div id="insertion-point-fora"></div>
+            </div>
+
+            <div id="common-fields-block" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="manual-start-input" class="{% if atividade_em_andamento %}hidden{% endif %}">
+                        <label class="text-xs text-gray-400 mb-1 block">Hora Início *</label>
+                        {{ form.hora_inicio }}
+                        {% if form.hora_inicio.errors %}
+                            <span class="text-red-500 text-xs">{{ form.hora_inicio.errors }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div id="manual-end-input" class="{% if atividade_em_andamento %}hidden{% endif %}">
+                        <label class="text-xs text-gray-400 mb-1 block">Hora Término *</label>
+                        {{ form.hora_termino }}
+                        {% if form.hora_termino.errors %}
+                            <span class="text-red-500 text-xs">{{ form.hora_termino.errors }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div id="checkin-btn-area" class="hidden md:col-span-2 {% if atividade_em_andamento %}!block{% endif %}">
+                        <div class="bg-slate-800/50 p-4 rounded border border-slate-700 flex flex-col items-center justify-center gap-3">
+                            
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" id="status-text">
+                                {% if atividade_em_andamento %}
+                                    ATIVIDADE INICIADA ÀS <span class="text-emerald-400 font-mono text-base">{{ form.hora_inicio.value }}</span>
+                                {% else %}
+                                    Aguardando Registro...
+                                {% endif %}
+                            </p>
+                            
+                            <button type="button" id="btn-action-main" class="w-full md:w-2/3 font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-3 text-lg transition-all active:scale-95 text-white
+                                {% if atividade_em_andamento %}
+                                    bg-red-600 hover:bg-red-500
+                                {% else %}
+                                    bg-emerald-600 hover:bg-emerald-500
+                                {% endif %}">
+                                
+                                {% if atividade_em_andamento %}
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    <span>REGISTRAR SAÍDA</span>
+                                {% else %}
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                    </svg>
+                                    <span>REGISTRAR ENTRADA</span>
+                                {% endif %}
+                            </button>
+                            
+                            <p class="text-[12px] text-gray-500 mt-1">Atenção: Não é possivel editar depois de iniciar.</p>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 bg-slate-800/50 p-4 rounded border border-slate-700 mt-2">
+                        <div class="flex items-center gap-3">
+                            {{ form.registrar_auxiliar }}
+                            <label for="{{ form.registrar_auxiliar.id_for_label }}" class="font-bold text-sm text-indigo-300 cursor-pointer">Adicionar Auxiliares?</label>
+                        </div>
+                        <div class="aux-wrapper hidden space-y-3 mt-3">
+                            <div><label class="text-xs text-gray-500 block mb-1">Auxiliar Principal</label>{{ form.auxiliar_selecao }}</div>
+                            {{ form.auxiliares_extras_list }}
+                            <div id="extras-container" class="space-y-2"></div>
+                            <button type="button" id="btn-add-extra" class="text-xs text-indigo-400 font-bold hover:text-white transition-colors">+ Add. Auxiliar</button>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 grid grid-cols-2 gap-4 bg-slate-800/30 p-3 rounded border border-slate-700/50">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                {{ form.em_plantao }}
+                                <label for="{{ form.em_plantao.id_for_label }}" class="text-sm text-gray-300 cursor-pointer select-none hover:text-white">Atividade em Plantão?</label>
+                            </div>
+                            <div class="hidden">{{ form.data_plantao }}</div> 
+                            
+                            <p id="data-plantao-feedback" class="text-xs text-red-400 hidden ml-6">Data Plantão: <span id="data-plantao-display" class="font-bold">--/--/--</span></p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                {{ form.dorme_fora }}
+                                <label for="{{ form.dorme_fora.id_for_label }}" class="text-sm text-gray-300 cursor-pointer select-none hover:text-white">Dorme Fora Nesta Data?</label>
+                            </div>
+                            <p id="data-dorme-fora-feedback" class="text-xs text-orange-400 hidden ml-6">Data Dorme-Fora: <span id="data-dorme-fora-display" class="font-bold">--/--/--</span></p>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2"><label class="text-xs text-gray-400 mb-1 block">Ocorrências / Obs.</label>{{ form.ocorrencias }}</div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4">
+                <button type="button" id="btn-pre-save" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg w-full md:w-auto transition-colors {% if atividade_em_andamento %}hidden{% endif %}">
+                    Salvar Registro
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div id="date-picker-modal" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-2xl max-w-sm w-full p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-white font-bold" id="picker-title">Selecione a Data</h3>
+                        <button onclick="closeDateModal()" class="text-gray-400 hover:text-white">&times;</button>
+                    </div>
+                    <div class="flex justify-between items-center text-white mb-4">
+                        <button onclick="changePickerMonth(-1)" class="p-1 hover:bg-slate-700 rounded">&lt;</button>
+                        <span id="picker-month-label" class="font-bold uppercase text-sm"></span>
+                        <button onclick="changePickerMonth(1)" class="p-1 hover:bg-slate-700 rounded">&gt;</button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                        <div class="text-xs text-gray-500">D</div><div class="text-xs text-gray-500">S</div><div class="text-xs text-gray-500">T</div><div class="text-xs text-gray-500">Q</div><div class="text-xs text-gray-500">Q</div><div class="text-xs text-gray-500">S</div><div class="text-xs text-gray-500">S</div>
+                    </div>
+                    <div id="picker-grid" class="grid grid-cols-7 gap-1 text-sm"></div>
+                    <div class="mt-4 pt-4 border-t border-slate-700 flex gap-4 justify-center text-[10px]">
+                        <div class="flex items-center gap-1"><div class="w-2 h-2 border border-blue-500"></div><span class="text-gray-400">Hoje</span></div>
+                        <div class="flex items-center gap-1"><div class="w-2 h-2 border border-green-500"></div><span class="text-gray-400">Data Registro</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-800 border border-slate-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-slate-900 px-4 py-3 sm:px-6 border-b border-slate-700 flex items-center gap-3">
+                        <div id="modal-icon-container" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-indigo-900/50"></div>
+                        <h3 class="text-lg font-semibold leading-6 text-white" id="modal-title">Confirmação</h3>
+                    </div>
+                    <div class="px-4 py-5 sm:p-6"><div id="modal-content" class="space-y-3 text-sm text-gray-300"></div></div>
+                    <div class="bg-slate-700/30 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-3">
+                        <button type="button" id="btn-confirm-submit" class="hidden inline-flex w-full justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto">Confirmar e Enviar</button>
+                        <button type="button" onclick="closeConfirmModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm hover:bg-slate-600 sm:mt-0 sm:w-auto border border-slate-600">Voltar e Editar</button>
+                        <button type="button" id="btn-confirm-checkout" class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Confirmar Saída</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function exibirToast(mensagem, tipo = 'sucesso') {
+            const container = document.getElementById('toast-container');
+            
+            // Configurações de cores baseadas no tipo
+            let classesCor = '';
+            let icone = '';
+            let titulo = '';
+
+            if (tipo === 'erro') {
+                classesCor = 'text-red-800 bg-red-50 border-red-500';
+                titulo = 'Erro!';
+                icone = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />';
+            } else {
+                // Sucesso (Padrão)
+                classesCor = 'text-emerald-800 bg-emerald-50 border-emerald-500';
+                titulo = 'Sucesso!';
+                icone = '<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>';
+            }
+
+            // Cria o elemento HTML
+            const toastHtml = `
+                <div class="flex items-center p-4 mb-4 text-sm ${classesCor} rounded-lg border shadow-lg animate-fadeIn" role="alert">
+                    <svg class="flex-shrink-0 inline w-5 h-5 me-3" fill="currentColor" viewBox="0 0 20 20">${icone}</svg>
+                    <div><span class="font-medium">${titulo}</span> ${mensagem}</div>
+                    <button type="button" class="ms-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 hover:bg-opacity-20 hover:bg-gray-500 h-8 w-8 flex items-center justify-center" onclick="this.parentElement.remove()">
+                        <span class="sr-only">Fechar</span>
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                    </button>
+                </div>
+            `;
+
+            // Converte string para elemento DOM e adiciona
+            const divTemp = document.createElement('div');
+            divTemp.innerHTML = toastHtml.trim();
+            const novoToast = divTemp.firstChild;
+            container.appendChild(novoToast);
+
+            // Remove automaticamente após 4 segundos
+            setTimeout(() => {
+                if (novoToast && novoToast.parentElement) novoToast.remove();
+            }, 4000);
+        }
+
+        $(document).ready(function() {
+
+            // 1. Função para remover o Loader
+            function hidePageLoader() {
+                const loader = document.getElementById('page-loader');
+                if(loader) {
+                    loader.classList.add('opacity-0', 'pointer-events-none');
+                    // Opcional: remover do DOM após a transição
+                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                }
+            }
+
+            // 2. Função para mostrar o Loader (útil ao clicar em Salvar/Iniciar)
+            window.showPageLoader = function(texto = "Processando...") {
+                const loader = document.getElementById('page-loader');
+                if(loader) {
+                    loader.querySelector('p').innerText = texto;
+                    loader.style.display = 'flex';
+                    // Pequeno delay para permitir que o display:flex renderize antes de mexer na opacidade
+                    setTimeout(() => { 
+                        loader.classList.remove('opacity-0', 'pointer-events-none'); 
+                    }, 10);
+                }
+            }
+
+            // ============================================
+            // 1. INICIALIZAÇÃO DE VARIÁVEIS DO DOM
+            // ============================================
+            const btnAddObra = document.getElementById('btn-add-obra');
+            const wrapperObras = document.getElementById('obras-extras-wrapper');
+            const hiddenObras = document.getElementById('id_obras_extras_list');
+            const hiddenCheckRateio = document.getElementById('id_registrar_multiplas_obras');
+            const placaInput = document.getElementById('id_veiculo_manual_placa');
+            const localSel = document.getElementById('id_local_execucao');
+            const boxObra = document.getElementById('container-obra');
+            const boxFora = document.getElementById('container-fora');
+            const commonBlock = document.getElementById('common-fields-block');
+            const insertObra = document.getElementById('insertion-point-obra');
+            const insertFora = document.getElementById('insertion-point-fora');
+            const inputsWrapper = document.getElementById('inputs-obra-wrapper');
+            const vCheck = document.getElementById('id_registrar_veiculo');
+            const vCont = document.getElementById('veiculo-container');
+            const auxCheck = document.getElementById('id_registrar_auxiliar');
+            const auxWrap = document.querySelector('.aux-wrapper');
+            const mainAux = document.getElementById('id_auxiliar_selecao');
+            const containerExtras = document.getElementById('extras-container');
+            const btnAddExtra = document.getElementById('btn-add-extra');
+            const hiddenList = document.getElementById('id_auxiliares_extras_list');
+
+            const modeToggle = document.getElementById('mode-toggle');
+            const manualStart = document.getElementById('manual-start-input');
+            const manualEnd = document.getElementById('manual-end-input');
+            const checkinArea = document.getElementById('checkin-btn-area');
+            const btnAction = document.getElementById('btn-action-main');
+            const statusText = document.getElementById('status-text');
+            const submitBtn = document.getElementById('btn-pre-save');
+
+            const btnConfirmCheckout = document.getElementById('btn-confirm-checkout');
+            
+            let isCheckedIn = false; 
+
+            // Função melhorada para verificar status no servidor
+            function checkServerStatus() {
+                $.get("{% url 'produtividade:api_status_cronometro' %}")
+                .done((data) => {
+                    if (data.ativo) {
+                        isCheckedIn = true;
+                        
+                        // 1. Configura Botão de Ação e Texto
+                        updateButtonState('OUT', data.inicio_str);
+                        const statusHtml = `Atividade em andamento desde <span class="text-emerald-400 font-mono text-lg">${data.inicio_str}</span> (${data.data_registro}).`;
+                        $('#status-text').html(statusHtml);
+                        
+                        // 2. Trava Switch em Check-in
+                        const modeToggle = document.getElementById('mode-toggle');
+                        if(modeToggle) {
+                            modeToggle.checked = true;
+                            modeToggle.disabled = true;
+                            modeToggle.parentElement.classList.add('opacity-75', 'cursor-not-allowed'); 
+                        }
+
+                        // 3. Ajusta Layout (Esconde Manual / Mostra Check-in)
+                        $('#manual-start-input').addClass('hidden');
+                        $('#manual-end-input').addClass('hidden');
+                        $('#checkin-btn-area').removeClass('hidden');
+                        $('#btn-pre-save').addClass('hidden');
+
+                        // 4. Preenchimento dos Campos
+                        if (data.colaborador_id) {
+                            if (!$('#id_colaborador').find("option[value='" + data.colaborador_id + "']").length) {
+                                var newOption = new Option(data.colaborador_nome, data.colaborador_id, true, true);
+                                $('#id_colaborador').append(newOption);
+                            }
+                            // Seleciona o valor
+                            $('#id_colaborador').val(data.colaborador_id).trigger('change');
+                        }
+
+                        // Local
+                        if (data.local) {
+                            $('#id_local_execucao').val(data.local).trigger('change');
+                        }
+
+                        // Obras / Clientes / Centro de Custo
+                        if (data.projeto_id) {
+                            if (!$('#id_projeto').find("option[value='" + data.projeto_id + "']").length) {
+                                $('#id_projeto').append(new Option(data.projeto_nome, data.projeto_id, true, true));
+                            }
+                            $('#id_projeto').val(data.projeto_id).trigger('change');
+                        }
+                        
+                        if (data.cliente_id) {
+                            if (!$('#id_codigo_cliente').find("option[value='" + data.cliente_id + "']").length) {
+                                $('#id_codigo_cliente').append(new Option(data.cliente_nome, data.cliente_id, true, true));
+                            }
+                            $('#id_codigo_cliente').val(data.cliente_id).trigger('change');
+                        }
+
+                        if (data.cc_id) {
+                            if (!$('#id_centro_custo').find("option[value='" + data.cc_id + "']").length) {
+                                $('#id_centro_custo').append(new Option(data.cc_nome, data.cc_id, true, true));
+                            }
+                            $('#id_centro_custo').val(data.cc_id).trigger('change');
+                        }
+
+                        // Veículo
+                        if (data.veiculo_id) {
+                            $('#id_registrar_veiculo').prop('checked', true).trigger('change');
+                            
+                            // Lógica de veículo tratada sequencialmente
+                            if (data.veiculo_id === 'OUTRO') {
+                                if (!$('#id_veiculo_selecao').find("option[value='OUTRO']").length) {
+                                    $('#id_veiculo_selecao').append(new Option("OUTRO (Manual)", "OUTRO", true, true));
+                                }
+                                $('#id_veiculo_selecao').val('OUTRO').trigger('change');
+                            } else {
+                                if (!$('#id_veiculo_selecao').find("option[value='" + data.veiculo_id + "']").length) {
+                                    $('#id_veiculo_selecao').append(new Option(data.veiculo_nome, data.veiculo_id, true, true));
+                                }
+                                $('#id_veiculo_selecao').val(data.veiculo_id).trigger('change');
+                            }
+                        }
+
+                        // --- 5. TRAVA GERAL (Imediata após preenchimento) ---
+                        // Removemos o setTimeout de 500ms. Agora roda assim que os dados acima forem processados.
+                        
+                        // Desabilita inputs padrão
+                        $('#apontamentoForm input, #apontamentoForm select, #apontamentoForm textarea').prop('disabled', true);
+                        
+                        // Desabilita Select2 especificamente
+                        $('select').prop('disabled', true);
+                        
+                        // Esconde botões de ação auxiliares
+                        $('#btn-add-obra, #btn-add-extra').hide();
+                        $('.select2-selection__clear').hide();
+                        
+                        // Reabilita apenas o que é necessário para o Check-out
+                        $('#btn-action-main').prop('disabled', false).removeClass('opacity-50 cursor-not-allowed'); 
+                        $('#mode-toggle').prop('disabled', true); // Garante que o toggle fique travado
+
+                    } else {
+                        // Lógica quando NÃO tem atividade (Libera tudo)
+                        isCheckedIn = false;
+                        updateButtonState('IN');
+                        
+                        $('#apontamentoForm input, #apontamentoForm textarea, #apontamentoForm select').prop('disabled', false);
+                        $('#btn-add-obra, #btn-add-extra').show();
+                        $('.select2-selection__clear').show();
+
+                        const modeToggle = document.getElementById('mode-toggle');
+                        if(modeToggle) {
+                            modeToggle.disabled = false;
+                            modeToggle.parentElement.classList.remove('opacity-75', 'cursor-not-allowed');
+                            
+                            // Restaura estado visual baseado no Checkbox
+                            if (!modeToggle.checked) {
+                                $('#manual-start-input').removeClass('hidden');
+                                $('#manual-end-input').removeClass('hidden');
+                                $('#btn-pre-save').removeClass('hidden'); 
+                                $('#checkin-btn-area').addClass('hidden'); 
+                            } else {
+                                $('#manual-start-input').addClass('hidden');
+                                $('#manual-end-input').addClass('hidden');
+                                $('#btn-pre-save').addClass('hidden');
+                                $('#checkin-btn-area').removeClass('hidden');
+                            }
+                        } else {
+                            // Fallback se não tiver toggle
+                            $('#manual-start-input').removeClass('hidden');
+                            $('#manual-end-input').removeClass('hidden');
+                            $('#btn-pre-save').removeClass('hidden');
+                        }
+                    }
+                })
+                .fail(() => {
+                    exibirToast("Erro de comunicação ao verificar status.", "erro");
+                })
+                .always(() => {
+                    // *** ESCONDE O LOADER AO FINAL ***
+                    hidePageLoader();
+                });
+            }
+
+            // 1. Alternância de Modo
+            if (modeToggle) {
+                modeToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        // MODO CHECK-IN ATIVO
+                        manualStart.classList.add('hidden');
+                        manualEnd.classList.add('hidden');
+                        checkinArea.classList.remove('hidden');
+                        submitBtn.classList.add('hidden'); // Esconde o salvar manual
+                        
+                        // Verifica status no servidor (API) para ajustar o botão
+                        checkServerStatus();
+                    } else {
+                        // MODO MANUAL ATIVO
+                        manualStart.classList.remove('hidden');
+                        manualEnd.classList.remove('hidden');
+                        checkinArea.classList.add('hidden');
+                        submitBtn.classList.remove('hidden');
+                    }
+                });
+            }
+
+            checkServerStatus();
+
+            // 2. Atualiza visual do botão
+            function updateButtonState(type, timeStr=null) {
+                if (type === 'OUT') {
+                    // Precisa sair
+                    btnAction.className = "w-full md:w-2/3 bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-3 text-lg transition-all active:scale-95";
+                    btnAction.innerHTML = `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg><span>REGISTRAR SAÍDA</span>`;
+                    statusText.innerHTML = `Atividade iniciada às <span class="text-emerald-400">${timeStr}</span>. Finalize para salvar.`;
+                } else {
+                    // Precisa entrar
+                    btnAction.className = "w-full md:w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-3 text-lg transition-all active:scale-95";
+                    btnAction.innerHTML = `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg><span>REGISTRAR ENTRADA</span>`;
+                    statusText.innerHTML = "Pronto para iniciar.";
+                }
+            }
+
+            // 3. Ação do Botão Gigante
+            btnAction.addEventListener('click', function() {
+                if (isCheckedIn) {
+                    // === CENÁRIO: SAÍDA (STOP) -> Abre Modal ===
+                    modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10";
+                    modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>`;
+                    
+                    modalTitle.textContent = "Finalizar Atividade?";
+                    modalTitle.classList.remove('text-emerald-400');
+                    modalTitle.classList.add('text-red-400');
+                    
+                    modalContent.innerHTML = `<p class="text-base text-gray-300">Você está prestes a registrar a <span class="font-bold text-white">SAÍDA</span>.</p><p class="text-sm text-gray-400 mt-2">O tempo será contabilizado e a atividade encerrada.</p>`;
+
+                    btnConfirmSubmit.classList.add('hidden');
+                    btnConfirmCheckout.classList.remove('hidden');
+                    modal.classList.remove('hidden');
+
+                } else {
+                    // === CENÁRIO: ENTRADA (START) ===
+                    
+                    // Valida campos obrigatórios antes
+                    if ($('#id_local_execucao').val() === 'INT' && !$('#id_projeto').val() && !$('#id_codigo_cliente').val()) {
+                        return exibirToast('Selecione a Obra ou Cliente.', 'erro');
+                    }
+                    
+                    // *** ATIVA O LOADER ***
+                    showPageLoader("Iniciando Atividade...");
+
+                    const formData = $('#apontamentoForm').serialize();
+                    $.post("{% url 'produtividade:api_iniciar_cronometro' %}", formData)
+                    .done((resp) => {
+                        if (resp.success) {
+                            isCheckedIn = true;
+                            updateButtonState('OUT', resp.inicio);
+                            modeToggle.disabled = true;
+                            exibirToast("Entrada registrada às " + resp.inicio, "sucesso");
+                            checkServerStatus();
+                        } else {
+                            exibirToast("Erro: " + resp.error, "erro");
+                        }
+                    })
+                    .always(() => {
+                        // *** ESCONDE O LOADER ***
+                        hidePageLoader();
+                    });
+                }
+            });
+
+            // 4. Ação do NOVO Botão de Confirmar Saída (Dentro do Modal)
+            btnConfirmCheckout.addEventListener('click', function() {
+                // Fecha o modal
+                modal.classList.add('hidden');
+                
+                // *** ATIVA O LOADER ***
+                showPageLoader("Finalizando Atividade...");
+
+                const colaboradorId = $('#id_colaborador').val();
+                
+                $.post("{% url 'produtividade:api_parar_cronometro' %}", { 
+                    csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
+                    colaborador_id: colaboradorId
+                })
+                .done((resp) => {
+                    if (resp.success) {
+                        exibirToast("Saída registrada com sucesso!", "sucesso");
+                        setTimeout(() => {
+                             window.location.href = "{% url 'produtividade:historico_apontamentos' %}";
+                        }, 1500);
+                        // Nota: Não escondemos o loader aqui se for redirecionar, para evitar "flash" de tela
+                    } else {
+                        exibirToast("Erro: " + resp.error, "erro");
+                        hidePageLoader(); // Esconde se der erro lógico
+                    }
+                })
+                .fail(() => {
+                    exibirToast("Erro de comunicação com o servidor.", "erro");
+                    hidePageLoader(); // Esconde se der erro de rede
+                });
+            });
+
+            // ============================================
+            // 2. CONFIGURAÇÃO DO SELECT2 E EVENTOS INICIAIS
+            // ============================================
+            
+            if(placaInput) { placaInput.addEventListener('input', function() { this.value = this.value.toUpperCase(); }); }
+
+            $('#id_colaborador').select2({ placeholder: "Pesquisar Colaborador..." });
+
+            $('#id_colaborador').on('select2:select', async function (e) {
+                const val = e.params.data.id;
+                if(val) {
+                    try {
+                        let urlTemplate = "{% url 'produtividade:get_colaborador_info' 0 %}";
+                        const finalUrl = urlTemplate.replace('0', val);
+                        const r = await fetch(finalUrl);
+                        const d = await r.json();
+                        document.getElementById('id_cargo_colaborador').value = d.cargo;
+                    } catch (error) {
+                        document.getElementById('id_cargo_colaborador').value = "-";
+                    }
+                } else {
+                    document.getElementById('id_cargo_colaborador').value = "-";
+                }
+            });
+
+            $('#id_veiculo_selecao').select2({ placeholder: "Pesquisar Veículo..." });
+            $('#id_local_execucao').select2({ minimumResultsForSearch: Infinity });
+            $('#id_projeto').select2({ placeholder: "Pesquisar Código Específico...", allowClear: true });
+            $('#id_codigo_cliente').select2({ placeholder: "Pesquisar Código do Cliente...", allowClear: true });
+            $('#id_centro_custo').select2({ placeholder: "Pesquisar Centro de Custo / Justificativa..." });
+            $('#id_auxiliar_selecao').select2({ placeholder: "Pesquisar Auxiliar..." });
+            
+            $('#id_projeto').on('select2:select', function (e) { $('#id_codigo_cliente').val(null).trigger('change'); });
+            $('#id_codigo_cliente').on('select2:select', function (e) { $('#id_projeto').val(null).trigger('change'); });
+            
+            $('#id_local_execucao').change(function() { 
+                setTimeout(function() { 
+                    $('#id_projeto').select2({ placeholder: "Pesquisar Código Específico...", allowClear: true }); 
+                    $('#id_codigo_cliente').select2({ placeholder: "Pesquisar Código do Cliente...", allowClear: true }); 
+                    $('#id_centro_custo').select2({ placeholder: "Pesquisar Centro de Custo / Justificativa..." }); 
+                }, 100); 
+            });
+            
+            $('#id_veiculo_selecao').on('select2:select', function(e) { toggleNovoVeiculo(e.params.data.id); });
+            toggleNovoVeiculo($('#id_veiculo_selecao').val());
+
+            function toggleNovoVeiculo(val) {
+                const novoContainer = $('#novo-veiculo-container');
+                if(val === 'OUTRO') { novoContainer.removeClass('hidden'); } 
+                else { 
+                    novoContainer.addClass('hidden'); 
+                    $('#id_veiculo_manual_modelo').val(''); 
+                    $('#id_veiculo_manual_placa').val(''); 
+                }
+            }
+
+            $('#id_centro_custo').on('select2:select', function(e) { checkCentroCusto(e.params.data.id); });
+            const initialCC = $('#id_centro_custo').val(); if(initialCC) checkCentroCusto(initialCC);
+
+            async function checkCentroCusto(id) {
+                if(!id) return;
+                try {
+                    const r = await fetch(`/produtividade/api/get-centro-custo-info/${id}/`);
+                    const d = await r.json();
+                    const injectionPoint = document.getElementById('dynamic-obra-injection');
+                    const originalParent = document.querySelector('#container-obra'); 
+                    
+                    if (d.permite_alocacao) {
+                        injectionPoint.appendChild(inputsWrapper);
+                        $('#id_projeto').select2({ placeholder: "Pesquisar Código Específico...", allowClear: true });
+                        $('#id_codigo_cliente').select2({ placeholder: "Pesquisar Código do Cliente...", allowClear: true });
+                    } else {
+                        const ref = document.getElementById('insertion-point-obra');
+                        if (ref && ref.parentNode) {
+                            ref.parentNode.insertBefore(inputsWrapper, ref);
+                        }
+                        if ($('#id_local_execucao').val() === 'EXT') {
+                            $('#id_projeto').val(null).trigger('change');
+                            $('#id_codigo_cliente').val(null).trigger('change');
+                        }
+                    }
+                } catch(e) { console.error(e); }
+            }
+
+            function updateLayout() {
+                const val = $('#id_local_execucao').val();
+                commonBlock.classList.remove('hidden');
+                if(val === 'INT') {
+                    boxObra.classList.remove('hidden'); boxFora.classList.add('hidden'); insertObra.appendChild(commonBlock);
+                    const ref = document.getElementById('insertion-point-obra'); 
+                    if(ref && inputsWrapper.parentElement !== boxObra) boxObra.insertBefore(inputsWrapper, ref);
+                } else {
+                    boxObra.classList.add('hidden'); boxFora.classList.remove('hidden'); insertFora.appendChild(commonBlock);
+                }
+            }
+            
+            if(localSel) {
+                $('#id_local_execucao').on('change', updateLayout);
+                setTimeout(updateLayout, 50);
+            }
+
+            if(vCheck) vCheck.addEventListener('change', () => vCheck.checked ? vCont.classList.remove('hidden') : vCont.classList.add('hidden'));
+
+            if(auxCheck) {
+                const toggleAux = () => { if(auxCheck.checked) { auxWrap.classList.remove('hidden'); if(mainAux.options.length <= 1) loadAuxs(mainAux); } else { auxWrap.classList.add('hidden'); } };
+                auxCheck.addEventListener('change', toggleAux); toggleAux();
+            }
+
+            async function loadAuxs(selectElement, selectedValue = null) {
+                try {
+                    const url = "{% url 'produtividade:get_auxiliares' %}"; 
+                    const r = await fetch(url);
+                    const d = await r.json();
+                    selectElement.innerHTML = '<option value="">Selecione...</option>';
+                    d.auxiliares.forEach(aux => {
+                        const option = document.createElement('option');
+                        option.value = aux.id;
+                        option.textContent = aux.nome_completo; 
+                        if (selectedValue && String(aux.id) === String(selectedValue)) { option.selected = true; }
+                        selectElement.appendChild(option);
+                    });
+                } catch(e) { console.error("Erro ao carregar auxiliares:", e); }
+            }
+
+            async function createExtraSelect(selectedValue = null) {
+                const div = document.createElement('div'); 
+                div.className = "flex items-center gap-2 w-full mb-2"; 
+                const newSel = document.createElement('select'); 
+                newSel.className = "form-control text-sm w-full";
+                const btnRemove = document.createElement('button'); 
+                btnRemove.type = "button"; 
+                btnRemove.innerHTML = "&times;"; 
+                btnRemove.className = "text-red-500 font-bold px-3 text-2xl hover:text-red-400 focus:outline-none";
+                
+                await loadAuxs(newSel, selectedValue);
+                div.append(newSel, btnRemove); 
+                containerExtras.appendChild(div);
+
+                $(newSel).select2({ placeholder: "Selecione o Auxiliar Extra...", width: '100%' });
+                $(newSel).on('change', updateHidden); 
+                btnRemove.addEventListener('click', () => { $(newSel).select2('destroy'); div.remove(); updateHidden(); });
+            }
+
+            if(btnAddExtra) { btnAddExtra.addEventListener('click', async () => { await createExtraSelect(); }); }
+
+            function updateHidden() {
+                const selects = containerExtras.querySelectorAll('select');
+                const vals = Array.from(selects).map(s => s.value).filter(v=>v);
+                if(hiddenList) hiddenList.value = vals.join(',');
+            }
+
+            const savedExtras = hiddenList ? hiddenList.value : '';
+            if (savedExtras) {
+                const ids = savedExtras.split(',');
+                ids.forEach(async (id) => { if(id.trim()) await createExtraSelect(id.trim()); });
+                if (auxCheck && auxCheck.checked) auxWrap.classList.remove('hidden');
+            }
+
+            // ============================================
+            // 3. LÓGICA DE RATEIO (BLINDADA)
+            // ============================================
+            
+            async function restoreRateioRow(type, id) {
+                if (!wrapperObras) return; // Se não tem permissão, ignora
+
+                const div = document.createElement('div');
+                div.className = "flex flex-row items-center gap-2 bg-slate-800/50 p-2 rounded border border-slate-700 mb-2 w-full";
+
+                const typeSel = document.createElement('select');
+                typeSel.className = "bg-slate-700 border border-slate-600 text-white text-sm rounded focus:ring-indigo-500 focus:border-indigo-500 block w-24 h-[42px] p-1 flex-shrink-0 cursor-pointer";
+                typeSel.innerHTML = '<option value="P">OBRA</option><option value="C">CLIENTE</option>';
+                typeSel.value = type;
+
+                const selectCont = document.createElement('div');
+                selectCont.className = "flex-1 min-w-0";
+                const newSel = document.createElement('select');
+                newSel.className = "form-control w-full input-rateio-target";
+                selectCont.appendChild(newSel);
+
+                const btnRem = document.createElement('button');
+                btnRem.type = "button"; 
+                btnRem.innerHTML = "&times;";
+                btnRem.className = "text-red-500 hover:text-red-400 transition-colors h-[42px] w-10 flex items-center justify-center text-2xl flex-shrink-0";
+
+                div.append(typeSel, selectCont, btnRem);
+                wrapperObras.appendChild(div);
+
+                const isProj = type === 'P';
+                const original = isProj ? document.getElementById('id_projeto') : document.getElementById('id_codigo_cliente');
+                
+                $(newSel).empty().select2({
+                    data: $(original).find('option').map(function() { return {id: $(this).val(), text: $(this).text()}; }).get(),
+                    placeholder: isProj ? "Selecione a Obra..." : "Selecione o Cliente...",
+                    width: '100%' 
+                });
+
+                $(newSel).val(id).trigger('change');
+                $(newSel).on('change', updateHybridHidden);
+                
+                $(typeSel).on('change', function() {
+                    const newType = $(this).val();
+                    const newIsProj = newType === 'P';
+                    const newOriginal = newIsProj ? document.getElementById('id_projeto') : document.getElementById('id_codigo_cliente');
+                    $(newSel).empty().select2({
+                        data: $(newOriginal).find('option').map(function() { return {id: $(this).val(), text: $(this).text()}; }).get(),
+                        placeholder: newIsProj ? "Selecione a Obra..." : "Selecione o Cliente...",
+                        width: '100%'
+                    });
+                    updateHybridHidden();
+                });
+
+                btnRem.onclick = () => { $(newSel).select2('destroy'); div.remove(); updateHybridHidden(); };
+            }
+
+            if (hiddenObras && hiddenObras.value) {
+                const items = hiddenObras.value.split(',');
+                items.forEach(item => {
+                    if(item.includes('_')) {
+                        const [type, id] = item.split('_');
+                        if(type && id) restoreRateioRow(type, id);
+                    }
+                });
+                if(hiddenCheckRateio) hiddenCheckRateio.checked = true;
+            }
+
+            if(btnAddObra) {
+                btnAddObra.addEventListener('click', function() {
+                    const total = wrapperObras.children.length;
+                    if(total >= 9) return alert("Limite de 10 atingido.");
+
+                    const div = document.createElement('div');
+                    div.className = "flex flex-row items-center gap-2 bg-slate-800/50 p-2 rounded border border-slate-700 mb-2 w-full animate-fadeIn";
+
+                    const typeSel = document.createElement('select');
+                    typeSel.className = "bg-slate-700 border border-slate-600 text-white text-sm rounded focus:ring-indigo-500 focus:border-indigo-500 block w-24 h-[42px] p-1 flex-shrink-0 cursor-pointer";
+                    typeSel.innerHTML = '<option value="P">OBRA</option><option value="C">CLIENTE</option>';
+
+                    const selectCont = document.createElement('div');
+                    selectCont.className = "flex-1 min-w-0";
+                    const newSel = document.createElement('select');
+                    newSel.className = "form-control w-full input-rateio-target";
+                    selectCont.appendChild(newSel);
+
+                    const btnRem = document.createElement('button');
+                    btnRem.type = "button"; 
+                    btnRem.innerHTML = "&times;";
+                    btnRem.className = "text-red-500 hover:text-red-400 transition-colors h-[42px] w-10 flex items-center justify-center text-2xl flex-shrink-0";
+
+                    div.append(typeSel, selectCont, btnRem);
+                    wrapperObras.appendChild(div);
+
+                    const loadOptions = () => {
+                        const isProj = typeSel.value === 'P';
+                        const original = isProj ? document.getElementById('id_projeto') : document.getElementById('id_codigo_cliente');
+                        
+                        $(newSel).empty().select2({
+                            data: $(original).find('option').map(function() { return {id: $(this).val(), text: $(this).text()}; }).get(),
+                            placeholder: isProj ? "Selecione a Obra..." : "Selecione o Cliente...",
+                            width: '100%' 
+                        }).on('change', updateHybridHidden);
+                    };
+
+                    $(typeSel).on('change', loadOptions);
+                    loadOptions();
+
+                    btnRem.onclick = () => { $(newSel).select2('destroy'); div.remove(); updateHybridHidden(); };
+                    
+                    if(hiddenCheckRateio) hiddenCheckRateio.checked = true;
+                });
+            }
+
+            function updateHybridHidden() {
+                if (!wrapperObras) return;
+                const rows = wrapperObras.querySelectorAll('div.flex');
+                const vals = Array.from(rows).map(row => {
+                    const type = row.querySelector('select').value;
+                    const id = $(row.querySelector('.input-rateio-target')).val();
+                    return id ? `${type}_${id}` : null;
+                }).filter(v => v);
+                
+                if(hiddenObras) hiddenObras.value = vals.join(',');
+                if(hiddenCheckRateio) hiddenCheckRateio.checked = vals.length > 0;
+            }
+
+            // ============================================
+            // 4. LÓGICA DO DATE PICKER
+            // ============================================
+            let activeDateInputId = null;
+            let pickerDate = new Date();
+            const pickerModal = document.getElementById('date-picker-modal');
+            const pickerGrid = document.getElementById('picker-grid');
+            const pickerLabel = document.getElementById('picker-month-label');
+            const pickerTitle = document.getElementById('picker-title');
+
+            const plantaoCheck = document.getElementById('id_em_plantao');
+            const feedbackPlantaoText = document.getElementById('data-plantao-feedback');
+            const feedbackPlantaoDisplay = document.getElementById('data-plantao-display');
+
+            const dormeCheck = document.getElementById('id_dorme_fora');
+            const feedbackText = document.getElementById('data-dorme-fora-feedback');
+            const feedbackDisplay = document.getElementById('data-dorme-fora-display');
+
+            const mainDateInput = document.getElementById('id_data_apontamento');
+            if (mainDateInput) {
+                mainDateInput.addEventListener('click', () => openDateSelector('id_data_apontamento', 'Selecione a Data do Registro'));
+            }
+
+            if(plantaoCheck) {
+                plantaoCheck.addEventListener('change', function() {
+                    if (this.checked) { openDateSelector('id_data_plantao', 'Selecione a Data do Plantão'); } else { 
+                        const inputPlantao = document.getElementById('id_data_plantao'); if(inputPlantao) inputPlantao.value = ''; 
+                        feedbackPlantaoText.classList.add('hidden'); 
+                    }
+                });
+            }
+
+            if(dormeCheck) {
+                dormeCheck.addEventListener('change', function() {
+                    if (this.checked) { openDateSelector('id_data_dorme_fora', 'Selecione a Data do Dorme-Fora'); } else { 
+                        document.getElementById('id_data_dorme_fora').value = ''; 
+                        feedbackText.classList.add('hidden'); 
+                    }
+                });
+            }
+
+            window.openDateSelector = function(inputId, title = "Selecione uma Data") {
+                if (inputId === 'id_data_plantao' || inputId === 'id_data_dorme_fora') {
+                    const mainDateVal = document.getElementById('id_data_apontamento').value;
+                    if (!mainDateVal) { alert("Por favor, preencha a Data do Registro (Início) primeiro."); return; }
+                    const parts = mainDateVal.split('/');
+                    pickerDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                } else {
+                    const currVal = document.getElementById(inputId).value;
+                    if (currVal && currVal.includes('/')) {
+                        const parts = currVal.split('/');
+                        pickerDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else { pickerDate = new Date(); }
+                }
+                activeDateInputId = inputId;
+                pickerTitle.textContent = title;
+                pickerModal.classList.remove('hidden');
+                renderPicker();
+            }
+
+            window.closeDateModal = function() { 
+                pickerModal.classList.add('hidden'); 
+                if (activeDateInputId === 'id_data_plantao' && !document.getElementById('id_data_plantao').value) plantaoCheck.checked = false;
+                if (activeDateInputId === 'id_data_dorme_fora' && !document.getElementById('id_data_dorme_fora').value) dormeCheck.checked = false;
+                activeDateInputId = null;
+            }
+
+            window.changePickerMonth = function(d) { pickerDate.setMonth(pickerDate.getMonth() + d); renderPicker(); }
+
+            function renderPicker() {
+                pickerGrid.innerHTML = '';
+                const m = pickerDate.getMonth();
+                const y = pickerDate.getFullYear();
+                pickerLabel.textContent = pickerDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                const firstDay = new Date(y, m, 1).getDay();
+                const daysInMonth = new Date(y, m + 1, 0).getDate();
+                const today = new Date();
+                const dataPrincipalStr = document.getElementById('id_data_apontamento').value;
+                const isRestrictedMode = (activeDateInputId === 'id_data_plantao' || activeDateInputId === 'id_data_dorme_fora');
+
+                for(let i=0; i<firstDay; i++) { pickerGrid.appendChild(document.createElement('div')); }
+                for(let d=1; d<=daysInMonth; d++) {
+                    const el = document.createElement('div');
+                    const currentDate = new Date(y, m, d);
+                    
+                    // Verifica se é HOJE
+                    const isToday = currentDate.getDate() === today.getDate() && 
+                                    currentDate.getMonth() === today.getMonth() && 
+                                    currentDate.getFullYear() === today.getFullYear();
+
+                    const formattedCurrent = `${String(d).padStart(2,'0')}/${String(m+1).padStart(2,'0')}/${y}`;
+                    el.className = "h-8 w-8 flex items-center justify-center rounded transition text-sm border border-transparent";
+                    el.textContent = d;
+                    let isClickable = true;
+
+                    if (isRestrictedMode) {
+                        // MODO RESTRITO (Plantão/Dorme Fora)
+                        if (formattedCurrent === dataPrincipalStr) {
+                            el.classList.remove('border-transparent'); 
+                            el.classList.add('bg-emerald-600', 'text-white', 'font-bold', 'cursor-pointer', 'shadow-md');
+                        } else {
+                            isClickable = false;
+                            el.classList.add('cursor-not-allowed');
+
+                            // [RESTAURADO] Mostra 'Hoje' mesmo desabilitado
+                            if (isToday) {
+                                el.classList.remove('border-transparent');
+                                el.classList.add('border-blue-500', 'text-blue-400', 'font-bold', 'opacity-60');
+                            } else {
+                                el.classList.add('text-gray-600', 'opacity-20');
+                            }
+                        }
+                    } else {
+                        // MODO NORMAL (Seleção de Data)
+                        el.classList.add('cursor-pointer', 'hover:bg-slate-700');
+                        const currentInputVal = document.getElementById(activeDateInputId).value;
+                        const isSelected = currentInputVal === formattedCurrent;
+
+                        if (isSelected) {
+                            // Selecionado (Verde Sólido)
+                            el.classList.remove('border-transparent'); 
+                            el.classList.add('bg-emerald-600', 'text-white', 'font-bold', 'shadow-md');
+                        } else if (isToday) {
+                            // [RESTAURADO] Hoje (Borda Azul)
+                            el.classList.remove('border-transparent');
+                            el.classList.add('border-blue-500', 'text-blue-400', 'font-bold');
+                        } else {
+                            // Dia Comum
+                            el.classList.add('text-gray-300');
+                        }
+                    }
+
+                    if (isClickable) {
+                        el.onclick = function() {
+                            const finalDate = formattedCurrent;
+                            if (activeDateInputId) {
+                                const input = document.getElementById(activeDateInputId); 
+                                input.value = finalDate;
+                                
+                                if (activeDateInputId === 'id_data_plantao') { 
+                                    feedbackPlantaoDisplay.textContent = finalDate; 
+                                    feedbackPlantaoText.classList.remove('hidden'); 
+                                }
+                                if (activeDateInputId === 'id_data_dorme_fora') { 
+                                    feedbackDisplay.textContent = finalDate; 
+                                    feedbackText.classList.remove('hidden'); 
+                                }
+                                
+                                if (activeDateInputId === 'id_data_apontamento') {
+                                    const pInput = document.getElementById('id_data_plantao');
+                                    const dInput = document.getElementById('id_data_dorme_fora');
+                                    if(pInput && pInput.value && pInput.value !== finalDate) { pInput.value = ''; feedbackPlantaoText.classList.add('hidden'); }
+                                    if(dInput && dInput.value && dInput.value !== finalDate) { dInput.value = ''; feedbackText.classList.add('hidden'); }
+                                }
+                            }
+                            pickerModal.classList.add('hidden'); 
+                            activeDateInputId = null;
+                        };
+                    }
+                    pickerGrid.appendChild(el);
+                }
+            }
+
+            // ============================================
+            // 5. LÓGICA DE SUBMIT/CONFIRMAÇÃO
+            // ============================================
+            const btnPreSave = document.getElementById('btn-pre-save');
+            const modal = document.getElementById('confirm-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            const modalIconContainer = document.getElementById('modal-icon-container');
+            const btnConfirmSubmit = document.getElementById('btn-confirm-submit');
+            const mainForm = document.getElementById('apontamentoForm');
+            window.closeConfirmModal = function() { modal.classList.add('hidden'); }
+
+            btnPreSave.addEventListener('click', function() {
+                // Atualiza visualmente para garantir que o JS pegue os dados
+                const localVal = $('#id_local_execucao').val();
+                const wrapperRateio = document.getElementById('obras-extras-wrapper');
+                // Verifica se tem filhos (linhas adicionadas)
+                const is_rateio = (wrapperRateio && wrapperRateio.children.length > 0);
+                
+                // Verifica se os inputs de obra estão visíveis na tela
+                // (Isso cobre tanto o caso INT quanto o caso EXT com Centro de Custo alocável)
+                const inputsObraVisiveis = $('#inputs-obra-wrapper').is(':visible');
+
+                // Coleta de dados cruciais
+                const data = {
+                    colab: $('#id_colaborador').select2('data')[0]?.text || "",
+                    colab_id: $('#id_colaborador').val(),
+                    data_pt: document.getElementById('id_data_apontamento').value,
+                    local: localVal,
+                    obra: $('#id_projeto').select2('data')[0]?.text || "",
+                    obra_id: $('#id_projeto').val(),
+                    cliente_txt: $('#id_codigo_cliente').select2('data')[0]?.text || "",
+                    cliente_id: $('#id_codigo_cliente').val(),
+                    centro_custo_txt: $('#id_centro_custo').select2('data')[0]?.text || "",
+                    centro_custo_id: $('#id_centro_custo').val(),
+                    inicio: document.getElementById('id_hora_inicio').value,
+                    fim: document.getElementById('id_hora_termino').value,
+                    usou_veiculo: document.getElementById('id_registrar_veiculo').checked,
+                    em_plantao: document.getElementById('id_em_plantao').checked,
+                    data_plantao: document.getElementById('id_data_plantao')?.value,
+                    dorme_fora: document.getElementById('id_dorme_fora').checked,
+                    data_dorme_fora: document.getElementById('id_data_dorme_fora').value
+                };
+
+                let errors = [];
+
+                // --- VALIDAÇÕES BÁSICAS ---
+                if(!data.colab_id) errors.push("Colaborador é obrigatório.");
+                if(!data.data_pt) errors.push("Data é obrigatória.");
+                if(!data.inicio) errors.push("Hora de Início é obrigatória.");
+                if(!data.fim) errors.push("Hora de Término é obrigatória.");
+
+                if(data.local === 'INT') {
+                    // === CASO 1: INTERNO (Sempre exige Obra/Cliente) ===
+                    
+                    if (!data.obra_id && !data.cliente_id) {
+                         errors.push("Selecione o Código da Obra OU o Código do Cliente.");
+                    }
+                    if (data.obra_id && data.cliente_id) {
+                        errors.push("Selecione APENAS UM (Obra ou Cliente), não ambos.");
+                    }
+
+                    // Validação de Rateio (Linhas Vazias)
+                    if (is_rateio) {
+                        let temVazio = false;
+                        $(wrapperRateio).find('.input-rateio-target').each(function() {
+                            if (!$(this).val()) temVazio = true;
+                        });
+                        if (temVazio) errors.push("Existem linhas de rateio vazias. Preencha ou remova.");
+                    }
+
+                } else {
+                    // === CASO 2: EXTERNO (Fora da Obra) ===
+                    
+                    // A. Centro de Custo é a âncora do externo
+                    if(!data.centro_custo_id) {
+                        errors.push("O campo 'Setor / Justificativa (Custo)' é obrigatório.");
+                    }
+
+                    // B. Se os inputs de obra estiverem visíveis (Centro de Custo permite alocação)
+                    if (inputsObraVisiveis) {
+                        
+                        // B1. Valida o Principal
+                        if (!data.obra_id && !data.cliente_id) {
+                            errors.push("Para este Centro de Custo, é necessário informar a Obra ou Cliente.");
+                        }
+                        if (data.obra_id && data.cliente_id) {
+                            errors.push("Selecione apenas um destino (Obra ou Cliente).");
+                        }
+
+                        // B2. Valida o Rateio (A Lógica que faltava!)
+                        if (is_rateio) {
+                            let temVazio = false;
+                            $(wrapperRateio).find('.input-rateio-target').each(function() {
+                                if (!$(this).val()) temVazio = true;
+                            });
+                            // Aqui está a trava que você pediu:
+                            if (temVazio) {
+                                errors.push("Existem linhas de rateio vazias na alocação externa. Preencha ou remova.");
+                            }
+                        }
+                    }
+                }
+
+                // --- VALIDAÇÕES ADICIONAIS ---
+                if(data.em_plantao && !data.data_plantao) errors.push("Selecione a data do Plantão.");
+                if(data.dorme_fora && !data.data_dorme_fora) errors.push("Selecione a data do Dorme-Fora.");
+
+                // Validação Lógica de Horário
+                if (data.data_pt && data.data_pt.includes('/') && data.inicio && data.fim) {
+                    const parts = data.data_pt.split('/');
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1; 
+                    const year = parseInt(parts[2]);
+                    const [hIni, mIni] = data.inicio.split(':').map(Number);
+                    const [hFim, mFim] = data.fim.split(':').map(Number);
+                    let dtStart = new Date(year, month, day, hIni, mIni);
+                    let dtEnd = new Date(year, month, day, hFim, mFim);
+                    
+                    // Overnight logic
+                    if (dtEnd < dtStart) { dtEnd.setDate(dtEnd.getDate() + 1); }
+                    
+                    const now = new Date(); 
+                    if (dtStart > now) { errors.push("O horário de início não pode ser no futuro."); }
+                    if (dtEnd > now) { errors.push("O horário de término não pode ser no futuro."); }
+                }
+
+                // --- EXIBIÇÃO DE ERROS OU SUCESSO ---
+                if(errors.length > 0) {
+                    modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10";
+                    modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`;
+                    
+                    modalTitle.textContent = "Dados Incompletos";
+                    modalTitle.classList.remove('text-emerald-400');
+                    modalTitle.classList.add('text-red-400');
+                    
+                    let errorHtml = `<p class="font-bold text-red-300 mb-2">Correções necessárias:</p><ul class="list-disc list-inside space-y-1 text-gray-400">`;
+                    errors.forEach(e => errorHtml += `<li>${e}</li>`);
+                    errorHtml += `</ul>`;
+                    
+                    modalContent.innerHTML = errorHtml;
+                    btnConfirmSubmit.classList.add('hidden'); // Esconde botão de confirmar se houver erro
+                } else {
+                    // DADOS VÁLIDOS -> MOSTRA RESUMO PARA CONFIRMAR
+                    modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-900/50 sm:mx-0 sm:h-10 sm:w-10";
+                    modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                    
+                    modalTitle.textContent = "Confirmação de Envio";
+                    modalTitle.classList.remove('text-red-400');
+                    modalTitle.classList.add('text-emerald-400');
+
+                    let contextInfo = "";
+                    if(data.local === 'INT') {
+                        if(is_rateio) {
+                            contextInfo = `<span class="text-indigo-300 font-bold">Múltiplas Obras (Rateio):</span><br>`;
+                            // Lista as obras do rateio no resumo
+                            $('#obras-extras-wrapper').find('.input-rateio-target').each(function() {
+                                const txt = $(this).select2('data')[0]?.text;
+                                if(txt) contextInfo += `<span class="text-gray-400 text-xs ml-2">• ${txt}</span><br>`;
+                            });
+                        } else {
+                            if(data.obra_id) contextInfo = `<span class="text-indigo-300 font-bold">Obra:</span> ${data.obra}`;
+                            else if(data.cliente_id) contextInfo = `<span class="text-blue-300 font-bold">Cliente Geral:</span> ${data.cliente_txt}`;
+                        }
+                    } else {
+                        contextInfo = `<span class="text-orange-300 font-bold">Centro Custo:</span> ${data.centro_custo_txt}`;
+                        if(data.obra_id) contextInfo += `<br><span class="text-indigo-300 font-bold text-xs pl-2">↳ Alocado na Obra:</span> ${data.obra}`;
+                    }
+                    
+                    let extrasInfo = "";
+                    if(data.em_plantao) extrasInfo += `<span class="bg-red-900/50 text-red-300 px-2 py-0.5 rounded text-xs border border-red-800">PLANTÃO (${data.data_plantao || 'Sem data'})</span> `;
+                    if(data.dorme_fora) extrasInfo += `<span class="bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded text-xs border border-purple-800">DORME-FORA (${data.data_dorme_fora})</span>`;
+                    
+                    let html = `<div class="bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-2 text-sm">
+                        <p><span class="text-gray-500">Colaborador:</span> <span class="text-white font-bold text-lg block">${data.colab}</span></p>
+                        <p><span class="text-gray-500">Data:</span> <span class="text-white font-bold">${data.data_pt}</span></p>
+                        <div class="py-2 border-y border-slate-700 my-2 space-y-1"><p>${contextInfo}</p></div>
+                        <p><span class="text-gray-500">Horário:</span> <span class="text-emerald-400 font-mono font-bold text-base">${data.inicio}</span> até <span class="text-red-400 font-mono font-bold text-base">${data.fim}</span></p>
+                        <div class="mt-2">${extrasInfo}</div>
+                        </div>`;
+                    
+                    modalContent.innerHTML = html;
+                    btnConfirmSubmit.classList.remove('hidden'); // Mostra botão para enviar de verdade
+                }
+                
+                modal.classList.remove('hidden');
+            });
+
+            function capturarGPS(callbackSucesso, callbackErro) {
+                const statusDiv = document.getElementById('gps-status');
+                
+                if (!("geolocation" in navigator)) {
+                    statusDiv.innerHTML = '<span class="text-red-400">GPS não suportado</span>';
+                    if (callbackErro) callbackErro();
+                    return;
+                }
+
+                // Atualiza visual para "Buscando"
+                statusDiv.className = "mt-2 inline-flex items-center gap-2 text-xs font-bold text-yellow-500 bg-yellow-900/20 px-3 py-1 rounded-full border border-yellow-500/30";
+                statusDiv.innerHTML = `<svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Buscando GPS...</span>`;
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        // Sucesso
+                        document.getElementById('id_latitude').value = position.coords.latitude.toFixed(6);
+                        document.getElementById('id_longitude').value = position.coords.longitude.toFixed(6);
+                        
+                        statusDiv.className = "mt-2 inline-flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-500/30";
+                        statusDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg><span>Localização OK</span>`;
+                        
+                        if (callbackSucesso) callbackSucesso();
+                    },
+                    (error) => {
+                        // Erro
+                        console.warn("GPS:", error.message);
+                        statusDiv.className = "mt-2 inline-flex items-center gap-2 text-xs font-bold text-red-400 bg-red-900/20 px-3 py-1 rounded-full border border-red-500/30";
+                        statusDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg><span>Localização pendente...</span>`;
+                        
+                        if (callbackErro) callbackErro();
+                    },
+                    { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+                );
+            }
+
+            // 2. Tenta capturar assim que carrega a página (Solicitação 1)
+            capturarGPS();
+
+            // 3. Evento do Botão de Confirmação (Solicitação 2 - Insistente)
+            btnConfirmSubmit.addEventListener('click', function(e) { 
+                e.preventDefault(); 
+                
+                // Função para envio final (AJAX)
+                function submitFinalForm() {
+                    // *** ATIVA O LOADER ***
+                    showPageLoader("Salvando Registro...");
+
+                    const formData = new FormData(mainForm);
+                    fetch(window.location.href, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(response => { if (response.redirected) { window.location.href = response.url; return; } return response.text().then(html => ({ html, url: response.url })); })
+                    .then(result => {
+                        if (!result) return;
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(result.html, 'text/html');
+                        const errorDiv = doc.querySelector('#server-error-data');
+                        
+                        if (errorDiv) {
+                            // Se houve erro no formulário (Django backend validation)
+                            const errorMsg = errorDiv.innerHTML;
+                            modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10";
+                            modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`;
+                            
+                            modalTitle.textContent = "Erro no Registro";
+                            modalTitle.classList.remove('text-emerald-400'); modalTitle.classList.add('text-red-400');
+                            modalContent.innerHTML = `<div class="text-red-300 bg-red-900/20 p-3 rounded border border-red-800">${errorMsg}</div>`;
+                            
+                            btnConfirmSubmit.classList.add('hidden'); 
+                            btnConfirmSubmit.textContent = "Confirmar e Enviar"; 
+                            btnConfirmSubmit.disabled = false;
+                            
+                            // *** ESCONDE O LOADER PARA MOSTRAR O ERRO NO MODAL ***
+                            hidePageLoader();
+                        } else { 
+                            // Sucesso (renderiza a página retornada/redirecionada)
+                            document.open(); document.write(result.html); document.close(); 
+                        }
+                    })
+                    .catch(err => { 
+                        alert("Erro de comunicação."); 
+                        btnConfirmSubmit.disabled = false; 
+                        btnConfirmSubmit.textContent = "Confirmar e Enviar"; 
+                        // *** ESCONDE O LOADER EM CASO DE ERRO FATAL ***
+                        hidePageLoader();
+                    });
+                }
+
+                // Verifica se já temos lat/lon preenchidos
+                const lat = document.getElementById('id_latitude').value;
+                const lon = document.getElementById('id_longitude').value;
+
+                if (lat && lon) {
+                    // Já tem GPS, envia direto
+                    btnConfirmSubmit.disabled = true;
+                    btnConfirmSubmit.textContent = "Enviando...";
+                    submitFinalForm();
+                } else {
+                    // Não tem GPS, tenta pedir de novo
+                    btnConfirmSubmit.disabled = true;
+                    btnConfirmSubmit.textContent = "Obtendo Localização...";
+                    
+                    capturarGPS(
+                        () => { // Sucesso na 2ª tentativa
+                            btnConfirmSubmit.textContent = "Enviando...";
+                            submitFinalForm();
+                        },
+                        () => { // Falha na 2ª tentativa (Envia sem GPS mesmo)
+                            btnConfirmSubmit.textContent = "Enviando (Sem GPS)...";
+                            submitFinalForm();
+                        }
+                    );
+                }
+            });
+        });
+
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            document.getElementById('notif-titulo').innerText = titulo;
+            document.getElementById('notif-mensagem').innerText = msg;
+            const textarea = document.getElementById('notif-resposta');
+            textarea.value = resposta;
+            
+            // Se já tiver resposta, bloqueia edição (opcional, remova 'disabled' se quiser permitir editar)
+            if(resposta) {
+                textarea.disabled = true;
+                textarea.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                textarea.disabled = false;
+                textarea.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Define a URL correta no form
+            document.getElementById('form-responder-notificacao').action = `/produtividade/notificacoes/responder/${id}/`;
+            
+            document.getElementById('modal-ler-notificacao').classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>

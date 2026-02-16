@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titulo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="text-gray-200 p-4 sm:p-8 min-h-screen flex flex-col">
+    
+    <div class="max-w-7xl mx-auto w-full mb-10 border-b border-slate-800 pb-6 flex justify-between items-center">
+        <div>
+            <a href="{% url 'produtividade:home_menu' %}" class="text-indigo-400 hover:text-white text-sm font-bold flex items-center gap-1 mb-2 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd" /></svg>
+                VOLTAR AO MENU
+            </a>
+            <h1 class="text-4xl font-bold text-white tracking-tight">Painel Administrativo</h1>
+            <p class="text-gray-400 mt-1">Central de controle e gestão estratégica.</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="relative group z-50">
+                <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                    {% if notificacoes_nao_lidas_count > 0 %}
+                    <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                    {% endif %}
+                </button>
+
+                <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                    <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                        <h3 class="text-sm font-bold text-white">Notificações</h3>
+                        {% if notificacoes_nao_lidas_count > 0 %}
+                        <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                        {% endif %}
+                    </div>
+                    <div class="max-h-64 overflow-y-auto">
+                        {% for notif in notificacoes_usuario %}
+                        <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                            class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                            </div>
+                            <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                            <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                        </div>
+                        {% empty %}
+                        <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                    <div class="flex min-h-full items-center justify-center p-4">
+                        <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                            </div>
+                            <div class="p-6">
+                                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                    <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                </div>
+                                
+                                <form id="form-responder-notificacao" method="POST">
+                                    {% csrf_token %}
+                                    <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                    <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                    <div class="mt-4 flex justify-end">
+                                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative group z-50">
+                <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                    {{ user.username|slice:":1"|upper }}
+                </div>
+
+                <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                    
+                    <div class="px-4 py-3 border-b border-slate-700">
+                        <p class="text-sm text-white font-bold truncate">
+                            {% if user.first_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </p>
+                        <p class="text-xs text-gray-400 truncate">Conectado</p>
+                    </div>
+
+                    <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+                        Configurações
+                    </a>
+
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                            </svg>
+                            Sair do Sistema
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>    
+    </div>
+
+    <div class="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">
+
+        <a href="{% url 'produtividade:dashboard_conformidade' %}" class="group bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 p-6 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-indigo-500" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg>
+            </div>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-indigo-500/20 text-indigo-400 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Conformidade & Envios</h3>
+            </div>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Monitore a entrega de horas da equipe, identifique pendências, ausências e dispare notificações de cobrança.
+            </p>
+        </a>
+
+        <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="group bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 p-6 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg>
+            </div>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-amber-500/20 text-amber-400 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Central de Aprovações</h3>
+            </div>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Analise, aprove ou rejeite solicitações de ajuste e edições feitas pelos colaboradores nos registros de ponto.
+            </p>
+        </a>
+
+        <button onclick="openExportModal()" class="group text-left bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 p-6 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm2.25 8.5a.75.75 0 000 1.5h9a.75.75 0 000-1.5h-9zM6 13.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>
+            </div>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-emerald-500/20 text-emerald-400 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Relatórios Excel</h3>
+            </div>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Extraia relatórios completos de horas, projetos e custos em formato .xlsx para análise externa.
+            </p>
+        </button>
+
+        <a href="{% url 'produtividade:dashboard_auditoria' %}" class="group bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 p-6 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </div>
+
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-slate-800 text-gray-500 rounded-lg group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-300 group-hover:text-white transition-colors">Auditoria de Logs</h3>
+            </div>
+            
+            <p class="text-gray-500 text-sm leading-relaxed group-hover:text-gray-400 transition-colors">
+                Rastreabilidade completa de ações. Visualize histórico de exclusões, edições de administradores e acessos ao sistema.
+            </p>
+        </a>
+
+    </div>
+
+    <div id="export-modal" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-800 border border-slate-700 text-left shadow-2xl w-full max-w-md">
+                    <div class="bg-slate-900 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">Exportar Relatório</h3>
+                        <button onclick="document.getElementById('export-modal').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <form id="export-form" class="space-y-4">
+                            <div><label class="block text-xs font-bold text-gray-400 mb-1">Data Início</label><input type="date" id="export-start" class="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white text-sm" required></div>
+                            <div><label class="block text-xs font-bold text-gray-400 mb-1">Data Fim</label><input type="date" id="export-end" class="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white text-sm" required></div>
+                            <button type="button" onclick="submitExport()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded transition-colors shadow-lg shadow-emerald-900/20">Baixar Arquivo .xlsx</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openExportModal(){
+            const d=new Date();
+            // Define padrão (Dia 1 até último dia do mês atual)
+            document.getElementById('export-start').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+            document.getElementById('export-end').value = new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().split('T')[0];
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+        
+        function submitExport(){
+            const s = document.getElementById('export-start').value;
+            const e = document.getElementById('export-end').value;
+            if(!s || !e) return alert('Selecione as datas.');
+            
+            // Redireciona para a URL de exportação existente
+            window.location.href = `{% url 'produtividade:exportar_relatorio_excel' %}?start_date=${s}&end_date=${e}`;
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            document.getElementById('notif-titulo').innerText = titulo;
+            document.getElementById('notif-mensagem').innerText = msg;
+            const textarea = document.getElementById('notif-resposta');
+            textarea.value = resposta || ''; // Garante que não venha 'undefined'
+            
+            // Se já tiver resposta, bloqueia edição
+            if(resposta && resposta !== 'undefined' && resposta !== 'None') {
+                textarea.disabled = true;
+                textarea.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                textarea.disabled = false;
+                textarea.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Define a URL correta no form
+            document.getElementById('form-responder-notificacao').action = `/produtividade/notificacoes/responder/${id}/`;
+            
+            document.getElementById('modal-ler-notificacao').classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>

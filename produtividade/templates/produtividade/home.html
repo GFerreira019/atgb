@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Principal | Timesheet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
+</head>
+<body class="h-full flex flex-col items-center justify-center p-6 relative">
+
+    <div class="absolute top-6 right-6">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="text-gray-400 hover:text-red-400 transition-colors flex items-center gap-2 text-sm font-medium">
+                Sair
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-.943a.75.75 0 10-1.004-1.114l-2.5 2.25a.75.75 0 000 1.114l2.5 2.25a.75.75 0 101.004-1.114l-1.048-.943h9.546A.75.75 0 0019 10z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </form>
+    </div>
+
+    <div class="w-full max-w-sm space-y-8">
+        
+        <div class="text-center">
+            <img src="https://iili.io/fBF8lzx.md.png" 
+                 alt="Logo ATGB Connect" 
+                 class="mx-auto h-24 w-auto object-contain mb-6 drop-shadow-2xl">
+            
+            <h1 class="text-2xl font-bold text-white">Olá, {{ user.first_name|default:user.username }}!</h1>
+            <p class="text-gray-400 text-sm mt-1">Bem-vindo ao sistema de gestão.</p>
+        </div>
+
+        <div class="grid gap-4">
+            
+            <a href="{% url 'produtividade:novo_apontamento' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-indigo-600 rounded-xl border border-slate-700 hover:border-indigo-500 transition-all duration-300 shadow-lg hover:shadow-indigo-900/30 hover:-translate-y-1">
+                <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-white/20 flex items-center justify-center text-indigo-400 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                        <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32L19.513 8.2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Novo Apontamento</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-indigo-100">Lançar horas do dia</p>
+                </div>
+                <div class="ml-auto text-slate-600 group-hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                </div>
+            </a>
+
+            <a href="{% url 'produtividade:historico_apontamentos' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-emerald-600 rounded-xl border border-slate-700 hover:border-emerald-500 transition-all duration-300 shadow-lg hover:shadow-emerald-900/30 hover:-translate-y-1">
+                <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-white/20 flex items-center justify-center text-emerald-400 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                        <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0016.5 9h-1.875a1.875 1.875 0 01-1.875-1.875V5.25A3.75 3.75 0 009 1.5H5.625z" />
+                        <path d="M12.971 1.816A5.23 5.23 0 0114.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 013.434 1.279 9.768 9.768 0 00-6.963-6.963z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Meu Histórico</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-emerald-100">Consultar registros</p>
+                </div>
+                <div class="ml-auto text-slate-600 group-hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                </div>
+            </a>
+
+            {% if user.is_superuser %}
+            <a href="{% url 'produtividade:painel_owner' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-amber-600 rounded-xl border border-slate-700 hover:border-amber-500 transition-all duration-300 shadow-lg hover:shadow-amber-900/30 hover:-translate-y-1">
+                <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-white/20 flex items-center justify-center text-amber-400 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                        <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                        <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Painel Administrativo</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-amber-100">Central de controle e gestão estratégica</p>
+                </div>
+                <div class="ml-auto text-slate-600 group-hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                </div>
+            </a>
+            {% endif %}
+
+            {% if is_gestor and not user.is_superuser %}
+            <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-orange-600 rounded-xl border border-slate-700 hover:border-orange-500 transition-all duration-300 shadow-lg hover:shadow-orange-900/30 hover:-translate-y-1">
+                
+                <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-white/20 flex items-center justify-center text-orange-500 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white">Painel de Aprovações</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-orange-100">Gerenciar e aprovar horas da equipe</p>
+                </div>
+                
+                <div class="ml-auto text-slate-600 group-hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                </div>
+            </a>
+            {% endif %}
+
+            <a href="{% url 'produtividade:configuracoes' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 hover:border-slate-500 transition-all duration-300 shadow-lg hover:-translate-y-1">
+                <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-slate-600 flex items-center justify-center text-gray-400 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                        <path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.922-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Minha Conta</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-slate-200">Senha e dados</p>
+                </div>
+                <div class="ml-auto text-slate-600 group-hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                </div>
+            </a>
+
+        </div>
+
+        <p class="text-center text-xs text-gray-600 mt-12">ATGB Timesheet v1.0</p>
+    </div>
+
+</body>
+</html>

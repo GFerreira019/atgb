@@ -1,0 +1,618 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}">
+    <style>
+        tr.group:hover td { color: #e2e8f0; }
+        /* Grid do Calendário */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="h-full text-gray-200 p-4 sm:p-8">
+    <div class="max-w-full xl:max-w-7xl mx-auto bg-slate-900 shadow-xl rounded-lg border border-slate-800 p-6">
+
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between mb-8 border-b border-slate-800 pb-4 gap-4 relative">
+            
+            <div class="flex flex-col gap-2">
+                <h2 class="text-2xl font-bold text-white">{{ titulo }}</h2>
+                
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="?period=3" class="px-3 py-1 rounded-full text-xs font-bold transition-all {% if current_period == '3' %}bg-indigo-600 text-white shadow-lg shadow-indigo-500/30{% else %}bg-slate-800 text-gray-400 border border-slate-700 hover:bg-slate-700 hover:text-white{% endif %}">3 Dias</a>
+                    <a href="?period=7" class="px-3 py-1 rounded-full text-xs font-bold transition-all {% if current_period == '7' %}bg-indigo-600 text-white shadow-lg shadow-indigo-500/30{% else %}bg-slate-800 text-gray-400 border border-slate-700 hover:bg-slate-700 hover:text-white{% endif %}">7 Dias</a>
+                    <a href="?period=15" class="px-3 py-1 rounded-full text-xs font-bold transition-all {% if current_period == '15' %}bg-indigo-600 text-white shadow-lg shadow-indigo-500/30{% else %}bg-slate-800 text-gray-400 border border-slate-700 hover:bg-slate-700 hover:text-white{% endif %}">15 Dias</a>
+                    <a href="?period=30" class="px-3 py-1 rounded-full text-xs font-bold transition-all {% if current_period == '30' %}bg-indigo-600 text-white shadow-lg shadow-indigo-500/30{% else %}bg-slate-800 text-gray-400 border border-slate-700 hover:bg-slate-700 hover:text-white{% endif %}">30 Dias</a>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4 justify-end w-full xl:w-auto mt-4 xl:mt-0">
+
+                {% if is_owner %}
+                <a href="{% url 'produtividade:painel_owner' %}" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition flex items-center gap-2 shadow-lg shadow-emerald-900/20 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />
+                    </svg>
+                    Painel Administrativo
+                </a>
+                
+                {% elif is_gestor %}
+                <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-500 transition flex items-center gap-2 shadow-lg shadow-amber-900/20 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path fill-rule="evenodd" d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 001.075.676L10 15.082l5.925 2.844A.75.75 0 0017 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0010 2z" clip-rule="evenodd" />
+                    </svg>
+                    Painel de Gestão
+                </a>
+                {% endif %}
+
+                {% if not is_owner %}
+                <button type="button" onclick="openCalendar()" class="rounded-md bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-500 transition flex items-center gap-2 shadow-lg shadow-teal-900/20 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd" />
+                    </svg>
+                    Verificar Registros
+                </button>
+                {% endif %}
+
+                <a href="{% url 'produtividade:novo_apontamento' %}" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500 transition flex items-center gap-2 shadow-lg shadow-indigo-900/20 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    Novo Registro
+                </a>
+
+                <div class="relative group z-50">
+                    <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                        {% if notificacoes_nao_lidas_count > 0 %}
+                        <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                        {% endif %}
+                    </button>
+
+                    <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                        <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                            <h3 class="text-sm font-bold text-white">Notificações</h3>
+                            {% if notificacoes_nao_lidas_count > 0 %}
+                            <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                            {% endif %}
+                        </div>
+                        <div class="max-h-64 overflow-y-auto">
+                            {% for notif in notificacoes_usuario %}
+                            <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                                class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                    <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                                </div>
+                                <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                            </div>
+                            {% empty %}
+                            <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                    <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                        <div class="flex min-h-full items-center justify-center p-4">
+                            <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                                <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                    <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                                </div>
+                                <div class="p-6">
+                                    <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                        <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                    </div>
+                                    
+                                    <form id="form-responder-notificacao" method="POST">
+                                        {% csrf_token %}
+                                        <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                        <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                        <div class="mt-4 flex justify-end">
+                                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative group z-50">
+                        <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                            {{ user.username|slice:":1"|upper }}
+                        </div>
+
+                        <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                            
+                            <div class="px-4 py-3 border-b border-slate-700">
+                                <p class="text-sm text-white font-bold truncate">
+                                    {% if user.first_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-400 truncate">Conectado</p>
+                            </div>
+
+                            <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                Configurações
+                            </a>
+
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                        <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                    Sair do Sistema
+                                </button>
+                            </form>
+
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700">
+                <thead>
+                    <tr class="bg-slate-800">
+                        <th class="py-3 px-3 text-left text-xs font-bold text-gray-400 uppercase">Data</th>
+                        <th class="py-3 px-3 text-left text-xs font-bold text-gray-400 uppercase">Obra / Justificativa</th>
+                        <th class="py-3 px-3 text-left text-xs font-bold text-gray-400 uppercase">Colaborador</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Veículo</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Início</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Fim</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-indigo-400 uppercase">Total</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Total Dia</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Obs</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Extras</th> 
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Info</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Ações</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for item in apontamentos_lista %}
+                    <tr class="hover:bg-slate-800/50 transition group {% if item.flag_atencao %}border-l-4 border-l-yellow-500 bg-yellow-900/10{% endif %}">
+                        <td class="py-4 px-3 text-sm text-gray-300 font-medium whitespace-nowrap">{{ item.data|date:"d/m/Y" }}</td>
+                        <td class="py-4 px-3 text-sm text-gray-400">{{ item.local_ref }}</td>
+                        <td class="py-4 px-3 text-sm">
+                            <div class="flex flex-col">
+                                <span class="font-semibold {% if item.is_auxiliar %}text-indigo-300{% else %}text-white{% endif %}">
+                                    {{ item.nome }} {% if item.is_auxiliar %}<span class="ml-1 text-[10px] text-indigo-400 border border-indigo-800 px-1 rounded">AUX</span>{% endif %}
+                                </span>
+                                <span class="text-xs text-gray-500 font-normal">{{ item.cargo }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-sm text-center font-mono text-emerald-400">{{ item.veiculo }}</td>
+                        <td class="py-4 px-3 text-sm text-emerald-400 font-mono text-center">{{ item.inicio|time:"H:i" }}</td>
+                        <td class="py-4 px-3 text-sm text-red-400 font-mono text-center">{{ item.termino|time:"H:i" }}</td>
+                        <td class="py-4 px-3 text-sm text-white font-bold font-mono text-center bg-slate-800/30">
+                            <div class="flex items-center justify-center gap-2">
+                                <span>{{ item.duracao }}</span>
+
+                                {% if item.flag_atencao %}
+                                <div class="relative group/alert cursor-help">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    
+                                    <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-900 border border-yellow-500/50 text-left rounded shadow-2xl opacity-0 invisible group-hover/alert:opacity-100 group-hover/alert:visible transition-all duration-200 z-[100]">
+                                        <div class="flex items-center gap-2 mb-1 border-b border-yellow-500/30 pb-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                            <span class="font-bold text-yellow-400 text-xs uppercase">Atenção</span>
+                                        </div>
+                                        <p class="text-xs text-gray-300 leading-relaxed">
+                                            {{ item.motivo_alerta }}
+                                        </p>
+                                        <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-center align-middle">
+                            {% if item.is_last_of_day %}
+                                <div class="flex justify-center">
+                                    <span class="font-mono text-sm font-bold {{ item.total_dia_class }} px-2 py-1 rounded border border-slate-700 shadow-sm min-w-[60px]">
+                                        {{ item.total_dia_str }}
+                                    </span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-800 text-xs select-none">|</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="py-4 px-3 text-center">
+                            {% if item.obs %}
+                                <button type="button" onclick="openModal('Observações', `{{ item.obs|escapejs }}`)" class="text-gray-400 hover:text-white transition-colors" title="Ver Observação">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z" clip-rule="evenodd" /></svg>
+                                </button>
+                            {% else %}<span class="text-gray-600 text-xs">-</span>{% endif %}
+                        </td>
+                        
+                        <td class="py-4 px-3 text-center">
+                            <div class="flex flex-col items-center justify-center gap-1">
+                                {% if item.dorme_fora %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-indigo-400" title="Dorme Fora / Diária"><path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clip-rule="evenodd" /></svg>{% endif %}
+                                {% if item.em_plantao %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-400" title="Plantão"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clip-rule="evenodd" /></svg>{% endif %}
+                                {% if not item.dorme_fora and not item.em_plantao %}<span class="text-gray-600 text-xs">-</span>{% endif %}
+                            </div>
+                        </td>
+
+                        <td class="py-4 px-3 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button type="button" onclick="openModal('Detalhes do Registro', `👤 Enviado por: {{ item.registrado_por_str|escapejs }}\n📅 Data: {{ item.registrado_em|date:'d/m/Y' }}\n⏰ Hora: {{ item.registrado_em|date:'H:i' }}{% if item.latitude %}\n\n📍 Localização Capturada:\nLat: {{ item.latitude|stringformat:'f' }}\nLon: {{ item.longitude|stringformat:'f' }}{% endif %}`)" class="text-cyan-600 hover:text-cyan-400 transition-colors" title="Ver Detalhes do Registro">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 01.67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 11-.671-1.34l.041-.022zM12 9a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" /></svg>
+                                </button>
+
+                                {% if item.latitude and item.longitude %}
+                                    <a href="https://www.google.com/maps?q={{ item.latitude|stringformat:'f' }},{{ item.longitude|stringformat:'f' }}" 
+                                       target="_blank" 
+                                       class="text-emerald-400 hover:text-emerald-300 transition-colors"
+                                       title="Abrir no Google Maps">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 103 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 002.273 1.765 11.842 11.842 0 00.976.544l.062.029.006.003.002.001.003.001a.75.75 0 01-.01-1.499.75.75 0 01.01 1.5zM10 13a4 4 0 100-8 4 4 0 000 8z" clip-rule="evenodd" /></svg>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td class="py-4 px-3 text-center">
+                            <div class="flex items-center justify-center gap-3">
+                                {% if not item.is_auxiliar %}
+                                    
+                                    {% if item.registrado_por_id == request.user.id or is_owner %}
+                                        {% if item.pode_editar %}
+                                            <a href="{% url 'produtividade:editar_apontamento' item.id %}" class="text-indigo-400 hover:text-indigo-300 transition-colors" title="Editar">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32l8.4-8.4z" /><path d="M5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V8.25a1.5 1.5 0 011.5-1.5h5.25a.75.75 0 000-1.5H5.25z" /></svg>
+                                            </a>
+                                        {% elif item.status_aprovacao != 'SOLICITACAO_AJUSTE' %}
+                                            <button onclick="abrirModalAjuste(this)" data-url="{% url 'produtividade:solicitar_ajuste' item.id %}" class="text-yellow-500 hover:text-yellow-400 transition-colors" title="Solicitar Ajuste">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" /></svg>
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if is_gestor %}
+                                        <a href="{% url 'produtividade:analise_apontamento' item.id %}" class="text-blue-400 hover:text-blue-300 transition-colors" title="Analisar Registro">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </a>
+                                    {% endif %}
+
+                                    {% if is_owner %}
+                                        <a href="{% url 'produtividade:excluir_apontamento' item.id %}" class="text-red-500 hover:text-red-400 transition-colors" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este registro permanentemente?')">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.49 1.478l-.565-.061a48.854 48.854 0 01-7.83-.51 48.853 48.853 0 01-7.83.51l-.565.061a.75.75 0 11-.49-1.478 48.816 48.816 0 013.878-.512V4.478C7.49 3.31 8.358 2.25 9.593 2.25h4.814c1.236 0 2.103 1.06 2.103 2.228zM15 9.75a.75.75 0 00-1.5 0v6a.75.75 0 001.5 0v-6zm-3 0a.75.75 0 00-1.5 0v6a.75.75 0 001.5 0v-6zm-3 0a.75.75 0 00-1.5 0v6a.75.75 0 001.5 0v-6z" clip-rule="evenodd" /></svg>
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-gray-700 text-xs">-</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td class="py-4 px-3 text-center">
+                            {% if item.status_aprovacao == 'REJEITADO' %}
+                                <div class="group relative inline-block">
+                                    <span class="text-red-400 text-[10px] font-bold border border-red-500/50 px-2 py-1 rounded cursor-help flex items-center justify-center gap-1 bg-red-900/20">REJEITADO</span>
+                                    {% if item.motivo_rejeicao %}
+                                    <div class="absolute top-full right-0 mt-2 w-64 p-3 bg-white text-gray-900 text-xs rounded shadow-xl hidden group-hover:block z-[9999] border-2 border-red-500 text-left">
+                                        <strong class="text-red-600 block mb-1">Motivo:</strong>
+                                        <p class="text-gray-700">{{ item.motivo_rejeicao }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            {% elif item.status_aprovacao == 'EM_ANALISE' or item.status_aprovacao == 'PENDENTE' %}
+                                <span class="text-yellow-500 text-[10px] font-medium border border-yellow-500/50 px-2 py-1 rounded whitespace-nowrap bg-yellow-900/10">EM ANÁLISE</span>
+                            {% elif item.status_aprovacao == 'APROVADO' %}
+                                <span class="text-emerald-400 text-[10px] font-bold border border-emerald-500/50 px-2 py-1 rounded flex items-center justify-center gap-1 bg-emerald-900/10">APROVADO</span>
+                            {% elif item.status_aprovacao == 'SOLICITACAO_AJUSTE' %}
+                                <div class="group relative inline-block">
+                                    <span title="Aguardando aprovação do Gestor" class="text-indigo-300 text-[10px] font-bold border border-indigo-500/50 px-2 py-1 rounded cursor-help flex items-center justify-center gap-1 animate-pulse">⚠ AJUSTE</span>
+                                    {% if is_owner %}
+                                    <div class="absolute top-full right-0 mt-2 w-64 p-3 bg-white text-gray-900 text-xs rounded shadow-xl hidden group-hover:block z-[9999] border-2 border-indigo-500 text-left">
+                                        <strong class="text-indigo-600 block mb-1">Solicitação:</strong>
+                                        <p class="mb-3 text-gray-700">{{ item.motivo_ajuste }}</p>
+                                        <form action="{% url 'produtividade:aprovar_ajuste' item.id %}" method="POST" class="border-t border-gray-200 pt-2 flex justify-end">{% csrf_token %}<button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded font-bold text-[10px]">APROVAR</button></form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="13" class="text-center py-12">
+                            
+                            {% if bloqueia_data_antiga %}
+                                <div class="flex flex-col items-center justify-center gap-2 text-yellow-500/80">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <p class="text-sm font-bold uppercase tracking-wider">Visualização Arquivada</p>
+                                    <p class="text-xs text-gray-400 max-w-md mx-auto">
+                                        Este registro foi efetuado há mais de 30 dias. <br>
+                                        O detalhamento não está mais disponível para visualização direta.
+                                    </p>
+                                </div>
+
+                            {% else %}
+                                <span class="text-gray-500">Nenhum registro encontrado neste período.</span>
+                            {% endif %}
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="modalAjuste" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center z-50">
+        <div class="bg-slate-800 border border-slate-600 rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Solicitar Ajuste</h3>
+            <p class="text-sm text-gray-300 mb-4">Descreva o que está errado neste apontamento.</p>
+            <form id="formAjuste" method="POST" action="">
+                {% csrf_token %}
+                <textarea name="motivo_texto" rows="4" class="w-full bg-slate-700 text-white rounded border border-slate-600 p-2 focus:border-emerald-500 focus:outline-none" required placeholder="Ex: Esqueci de adicionar o carro..."></textarea>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="fecharModal()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500 font-bold">Enviar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="obs-modal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+          <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-lg bg-slate-800 border border-slate-700 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+              <div class="bg-slate-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                  <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-slate-700 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-300"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                  </div>
+                  <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                    <h3 class="text-base font-semibold leading-6 text-white" id="modal-title">Info</h3>
+                    <div class="mt-4"><p id="modal-text" class="text-sm text-gray-300 whitespace-pre-wrap bg-slate-900 p-3 rounded border border-slate-700 min-h-[60px] flex items-center"></p></div>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-slate-700/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-slate-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-500 sm:mt-0 sm:w-auto">Fechar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div id="export-modal" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-800 border border-slate-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
+                    <div class="bg-slate-900 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">Exportar Relatório Excel</h3>
+                        <button onclick="document.getElementById('export-modal').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <form id="export-form" class="space-y-3">
+                            <div><label class="block text-xs font-bold text-gray-400 mb-1">Data Início</label><input type="date" id="export-start" class="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white text-sm" required></div>
+                            <div><label class="block text-xs font-bold text-gray-400 mb-1">Data Fim</label><input type="date" id="export-end" class="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white text-sm" required></div>
+                            <button type="button" onclick="submitExport()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded mt-4 transition-colors">Baixar Arquivo .xlsx</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="calendar-modal" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-800 border border-slate-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
+                    <div class="bg-slate-900 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">Verificar Registros</h3>
+                        <button onclick="closeCalendar()" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+                    <div class="px-6 pt-4 flex justify-between items-center text-white mb-2">
+                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-700 rounded-full text-teal-400">&lt;</button>
+                        <span id="calendar-month-label" class="font-bold text-lg uppercase tracking-wider"></span>
+                        <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-700 rounded-full text-teal-400">&gt;</button>
+                    </div>
+                    <div class="px-6 pb-6">
+                        <div class="grid grid-cols-7 mb-2 text-center text-xs text-gray-500 font-bold"><div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div></div>
+                        <div id="calendar-grid" class="calendar-grid"><div class="col-span-7 text-center py-8 text-gray-500 italic">Carregando...</div></div>
+                        <div class="mt-4 pt-4 border-t border-slate-700 flex gap-4 justify-center text-xs flex-wrap">
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500"></div>
+                                <span class="text-gray-400">Preenchido</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500"></div>
+                                <span class="text-gray-400">Incompleto</span>
+                            </div>
+
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500"></div>
+                                <span class="text-gray-400">Pendente</span>
+                            </div>
+
+                        </div>
+                        <div id="owner-msg" class="hidden mt-2 text-center text-xs text-indigo-400 bg-indigo-900/20 p-2 rounded">Usuário Owner/Admin: Visualização apenas.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('obs-modal');
+        const modalText = document.getElementById('modal-text');
+        const modalTitle = document.getElementById('modal-title');
+        function openModal(t,x){modalTitle.textContent=t;modalText.textContent=x;modal.classList.remove('hidden')}
+        function closeModal(){modal.classList.add('hidden')}
+        modal.addEventListener('click', function(e) { if (e.target === modal.querySelector('.fixed.inset-0.bg-gray-900\\/75')) { closeModal(); } });
+
+        function openExportModal() {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const firstDayLocal = new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const lastDayLocal = new Date(lastDay.getTime() - (lastDay.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+            document.getElementById('export-start').value = firstDayLocal;
+            document.getElementById('export-end').value = lastDayLocal;
+            
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function submitExport() {
+            const s = document.getElementById('export-start').value;
+            const e = document.getElementById('export-end').value;
+            
+            if (!s || !e) return alert('Por favor, selecione as datas de início e fim.');
+            
+            window.location.href = `{% url 'produtividade:exportar_relatorio_excel' %}?start_date=${s}&end_date=${e}`;
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        let calDate=new Date();const cm=document.getElementById('calendar-modal'),cl=document.getElementById('calendar-month-label'),cg=document.getElementById('calendar-grid'),om=document.getElementById('owner-msg');
+        function openCalendar(){cm.classList.remove('hidden');fetchCalendarData()}
+        function closeCalendar(){cm.classList.add('hidden')}
+        function changeMonth(d){calDate.setMonth(calDate.getMonth()+d);fetchCalendarData()}
+        async function fetchCalendarData(){
+            const m = calDate.getMonth() + 1;
+            const y = calDate.getFullYear();
+            cl.textContent = calDate.toLocaleString('pt-BR', {month:'long', year:'numeric'});
+            cg.innerHTML = '<div class="col-span-7 text-center py-8 text-gray-500 italic">Carregando...</div>';
+            
+            try {
+                const r = await fetch(`/produtividade/api/get-calendar-status/?month=${m}&year=${y}`);
+                const d = await r.json();
+                
+                if(d.is_owner) om.classList.remove('hidden');
+                else om.classList.add('hidden');
+                
+                // AQUI: Passamos y e m explicitamente
+                renderCalendar(d.days, y, m);
+            } catch(e) {
+                console.error(e);
+                cg.innerHTML = '<div class="col-span-7 text-center py-8 text-red-500">Erro ao carregar.</div>';
+            }
+        }
+
+        function renderCalendar(daysData, year, month) {
+            const calGrid = document.getElementById('calendar-grid');
+            calGrid.innerHTML = '';
+            
+            const firstDayIndex = new Date(year, month - 1, 1).getDay();
+
+            // Adiciona células vazias (padding)
+            for (let i = 0; i < firstDayIndex; i++) { 
+                calGrid.appendChild(document.createElement('div')); 
+            }
+
+            // Se daysData vier vazio por algum erro, não quebra o layout, apenas fica vazio
+            if (!daysData) return;
+
+            daysData.forEach(d => {
+                const el = document.createElement('div');
+                
+                let className = "relative h-10 w-10 flex items-center justify-center rounded-lg text-sm font-bold border transition-all shadow-sm ";
+                
+                if (d.status === 'filled') {
+                    className += 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 cursor-pointer hover:bg-emerald-500/30 hover:scale-110';
+                } else if (d.status === 'incomplete') {
+                    className += 'bg-amber-500/20 text-amber-400 border-amber-500/50 cursor-pointer hover:bg-amber-500/30 hover:scale-110';
+                } else if (d.status === 'missing') {
+                    className += 'bg-red-500/20 text-red-400 border-red-500/50 cursor-pointer hover:bg-red-500/30 hover:scale-110';
+                } else if (d.status === 'day_off') {
+                    className += 'bg-slate-800 text-slate-500 border-slate-700 opacity-70 cursor-default';
+                } else {
+                    // Future ou Neutro
+                    className += 'bg-slate-800 text-gray-700 border-slate-800 opacity-30 cursor-default';
+                }
+                
+                el.className = className;
+                el.textContent = d.day;
+
+                if (d.has_dorme_fora) {
+                    const moonIcon = document.createElement('div');
+                    moonIcon.className = 'absolute top-0.5 right-0.5';
+                    moonIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>`;
+                    el.appendChild(moonIcon);
+                }
+
+                if (d.has_em_plantao) {
+                    const fireIcon = document.createElement('div');
+                    fireIcon.className = 'absolute top-0.5 left-0.5';
+                    fireIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-red-400" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clip-rule="evenodd" /></svg>`;
+                    el.appendChild(fireIcon);
+                }
+
+                if (d.status !== 'future' && d.status !== 'day_off') {
+                    el.onclick = function() { window.location.href = `?start_date=${d.date}&end_date=${d.date}`; };
+                }
+
+                calGrid.appendChild(el);
+            });
+        }
+
+        function abrirModalAjuste(btn){
+            const url = btn.getAttribute('data-url');
+            const form = document.getElementById('formAjuste');
+            form.action = url;
+            document.getElementById('modalAjuste').classList.remove('hidden');
+        }
+        function fecharModal(){document.getElementById('modalAjuste').classList.add('hidden')}
+
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            document.getElementById('notif-titulo').innerText = titulo;
+            document.getElementById('notif-mensagem').innerText = msg;
+            const textarea = document.getElementById('notif-resposta');
+            textarea.value = resposta;
+            
+            // Se já tiver resposta, bloqueia edição (opcional, remova 'disabled' se quiser permitir editar)
+            if(resposta) {
+                textarea.disabled = true;
+                textarea.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                textarea.disabled = false;
+                textarea.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Define a URL correta no form
+            document.getElementById('form-responder-notificacao').action = `/produtividade/notificacoes/responder/${id}/`;
+            
+            document.getElementById('modal-ler-notificacao').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

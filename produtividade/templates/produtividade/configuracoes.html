@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
+    <style>
+        .card-link {
+            background-color: #1e293b; /* slate-800 */
+            border-color: #334155; /* slate-700 */
+            transition: all 0.2s;
+        }
+        .card-link:hover {
+            background-color: #334155; /* slate-700 */
+            border-color: #6366f1; /* indigo-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 p-4 sm:p-8">
+
+    <div class="w-full max-w-4xl mx-auto">
+        
+        <div class="mb-6 border-b border-slate-800 pb-4 flex items-center justify-between relative">
+            <div>
+                <a href="{% url 'produtividade:home' %}" class="text-indigo-400 hover:text-white text-sm font-bold flex items-center gap-1 mb-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd" /></svg>
+                    VOLTAR AO MENU
+                </a>
+                <h2 class="text-3xl font-bold text-white">{{ titulo }}</h2>
+                <p class="text-gray-400 text-sm">Opções de conta e sistema.</p>
+            </div>
+            
+            <div class="relative group z-50">
+                <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                    {{ user.username|slice:":1"|upper }}
+                </div>
+
+                <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                    
+                    <div class="px-4 py-3 border-b border-slate-700">
+                        <p class="text-sm text-white font-bold truncate">
+                            {% if user.first_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </p>
+                        <p class="text-xs text-gray-400 truncate">Conectado</p>
+                    </div>
+
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                            </svg>
+                            Sair do Sistema
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <a href="{{ change_password_url }}" class="card-link p-6 rounded-xl border border-slate-700 shadow-lg flex items-center gap-4">
+                <div class="p-3 rounded-full bg-indigo-600/50 text-indigo-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7"><path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clip-rule="evenodd" /></svg>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Alterar a Senha</h3>
+                    <p class="text-sm text-gray-400">Redefina sua senha de acesso ao sistema.</p>
+                </div>
+            </a>
+            
+            <div class="card-link p-6 rounded-xl border border-slate-700 shadow-lg flex items-center gap-4 opacity-50 cursor-not-allowed">
+                 <div class="p-3 rounded-full bg-slate-600/50 text-slate-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7"><path d="M11.644 1.751a.75.75 0 01.712 0l4.02 1.838a.75.75 0 01.442.684V7.5c0 4.148-1.545 7.643-4.309 10.155a12.63 12.63 0 01-2.607 2.365.75.75 0 01-.798 0 12.628 12.628 0 01-2.607-2.365C5.025 15.143 3.48 11.648 3.48 7.5V4.273a.75.75 0 01.442-.684l4.02-1.838a.75.75 0 01.712 0z" /></svg>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-400">Notificações</h3>
+                    <p class="text-sm text-gray-500">Em desenvolvimento.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

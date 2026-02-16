@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: always
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "pFYYsThUNS@MWD0Rr" # O SQL Server exige senhas complexas
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    restart: always
+    command: gunicorn --bind 0.0.0.0:8000 config.wsgi:application
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Conecta ao container 'db' criado acima. O TrustServerCertificate=yes é necessário para o ambiente local/docker
+      - DATABASE_URL=mssql://sa:pFYYsThUNS@MWD0Rr@db:1433/master?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+
+  zap:
+    image: node:18-alpine
+    restart: always
+    working_dir: /app
+    volumes:
+      - ./zap-server:/app
+    command: sh -c "npm install && npm start"
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+
+volumes:
+  sqlserver_data:

@@ -1,0 +1,479 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <title>Análise de Apontamento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
+    <style>
+        .form-control {
+            background-color: #334155; border-color: #475569; color: #e2e8f0;
+            border-radius: 0.375rem; padding: 0.5rem; width: 100%; display: block;
+        }
+        .form-control:focus { outline: 2px solid #6366f1; border-color: #6366f1; }
+        /* Animação suave */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 p-4 sm:p-8 flex justify-center min-h-screen">
+    <div class="w-full max-w-6xl">
+        
+        {% if messages %}
+            <div class="fixed top-5 right-5 z-50 space-y-2">
+                {% for message in messages %}
+                    <div class="flex items-center p-4 mb-4 text-sm rounded-lg shadow-lg border {% if message.tags == 'error' %}text-red-400 bg-red-900/90 border-red-500{% else %}text-emerald-400 bg-emerald-900/90 border-emerald-500{% endif %}" role="alert" id="toast-message">
+                        <svg class="flex-shrink-0 inline w-5 h-5 me-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg>
+                        <div><span class="font-medium">Sistema:</span> {{ message }}</div>
+                        <button type="button" class="ms-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 hover:bg-slate-700 h-8 w-8 flex items-center justify-center text-white" onclick="this.parentElement.remove()">
+                            <span class="sr-only">Fechar</span><svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+            <script>setTimeout(function() { const t = document.querySelectorAll('#toast-message'); t.forEach(e => e.remove()); }, 5000);</script>
+        {% endif %}
+
+        <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+            <div>
+                <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="text-indigo-400 hover:text-white text-sm font-bold flex items-center gap-1 mb-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd" /></svg>
+                    VOLTAR AO DASHBOARD
+                </a>
+                <h2 class="text-3xl font-bold text-white tracking-tight">Análise de Registro #{{ apontamento.id }}</h2>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+
+                <div class="px-4 py-2 bg-slate-800 rounded-lg border border-slate-700 text-right flex flex-col justify-center min-w-[140px]">
+                    <span class="block text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Status Atual</span>
+                    
+                    {% if apontamento.status_aprovacao == 'EM_ANALISE' %}
+                        <span class="text-yellow-400 text-xs font-bold flex items-center gap-2 justify-end bg-yellow-400/10 px-2 py-1 rounded border border-yellow-400/20">
+                            <span class="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></span> EM ANÁLISE
+                        </span>
+                    {% elif apontamento.status_aprovacao == 'APROVADO' %}
+                        <span class="text-emerald-400 text-xs font-bold flex items-center gap-2 justify-end bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">
+                            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> APROVADO
+                        </span>
+                    {% elif apontamento.status_aprovacao == 'REJEITADO' %}
+                        <span class="text-red-400 text-xs font-bold flex items-center gap-2 justify-end bg-red-400/10 px-2 py-1 rounded border border-red-400/20">
+                            <span class="w-1.5 h-1.5 bg-red-400 rounded-full"></span> REJEITADO
+                        </span>
+                    {% else %}
+                        <span class="text-gray-400 text-xs font-bold flex items-center gap-2 justify-end bg-slate-700/50 px-2 py-1 rounded border border-slate-600">
+                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span> PENDENTE
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center gap-4">
+                    
+                    <div class="relative group z-50">
+                        <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                            {% if notificacoes_nao_lidas_count > 0 %}
+                            <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                            {% endif %}
+                        </button>
+
+                        <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                            <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                <h3 class="text-sm font-bold text-white">Notificações</h3>
+                                {% if notificacoes_nao_lidas_count > 0 %}
+                                <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                                {% endif %}
+                            </div>
+                            <div class="max-h-64 overflow-y-auto">
+                                {% for notif in notificacoes_usuario %}
+                                <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                                    class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                        <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                                </div>
+                                {% empty %}
+                                <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                        <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div class="flex min-h-full items-center justify-center p-4">
+                                <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                                    <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                        <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                        <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                                    </div>
+                                    <div class="p-6">
+                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                            <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                        </div>
+                                        
+                                        <form id="form-responder-notificacao" method="POST">
+                                            {% csrf_token %}
+                                            <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                            <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                            <div class="mt-4 flex justify-end">
+                                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative group z-50">
+                        <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                            {{ user.username|slice:":1"|upper }}
+                        </div>
+
+                        <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                            
+                            <div class="px-4 py-3 border-b border-slate-700">
+                                <p class="text-sm text-white font-bold truncate">
+                                    {% if user.first_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-400 truncate">Conectado</p>
+                            </div>
+
+                            <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                Configurações
+                            </a>
+
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                        <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                    Sair do Sistema
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if apontamento.flag_atencao %}
+        <div class="mb-6 bg-yellow-950/30 border-l-4 border-yellow-500 rounded-r-xl p-5 flex items-start gap-4 shadow-lg shadow-yellow-900/10 fade-in relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="shrink-0 mt-1">
+                <div class="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="flex-1 relative z-10">
+                <h3 class="text-yellow-400 font-bold text-lg flex items-center gap-2">
+                    Atenção:
+                </h3>
+                <p class="text-yellow-200/80 text-sm mt-1 leading-relaxed">
+                    {{ apontamento.motivo_alerta }}
+                </p>
+                <div class="mt-3 text-xs text-yellow-500/50 font-mono uppercase tracking-wide">
+                    Verifique os horários antes de aprovar
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if tem_alteracao %}
+        <div class="bg-slate-900 border border-yellow-500/30 rounded-xl p-6 mb-8 relative overflow-hidden shadow-lg shadow-yellow-900/10 fade-in">
+            <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+            
+            <h3 class="text-yellow-400 font-bold text-lg mb-6 flex items-center gap-2 border-b border-yellow-500/20 pb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Auditoria: Alterações Identificadas
+            </h3>
+            
+            <div class="grid gap-4">
+                {% for diff in diffs %}
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
+                    
+                    <div class="md:col-span-3 flex items-center gap-3 border-b md:border-b-0 md:border-r border-slate-700 pb-2 md:pb-0 md:pr-4">
+                        <div class="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-xl shrink-0 border border-slate-600">
+                            {% if diff.icon == 'clock' %}⏰
+                            {% elif diff.icon == 'calendar' %}📅
+                            {% elif diff.icon == 'truck' %}🚛
+                            {% elif diff.icon == 'siren' %}🚨
+                            {% elif diff.icon == 'moon' %}🌙
+                            {% elif diff.icon == 'map' %}🗺
+                            {% elif diff.icon == 'briefcase' %}💼
+                            {% elif diff.icon == 'user' %}👤
+                            {% else %}✏{% endif %}
+                        </div>
+                        <div class="min-w-0">
+                            <span class="text-gray-400 text-[10px] uppercase font-bold tracking-wider block">Campo Alterado</span>
+                            <span class="text-white font-bold text-sm block break-words">{{ diff.campo }}</span>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-4 bg-red-950/20 rounded border border-red-500/10 p-3 relative group">
+                        <span class="absolute -top-2 left-2 bg-slate-900 text-[9px] text-red-400 px-1.5 font-bold border border-red-500/20 rounded uppercase shadow-sm">Antes</span>
+                        <p class="text-red-300/70 line-through text-sm mt-1 break-words font-medium decoration-red-500/50">
+                            {{ diff.antes|default:"(Vazio)" }}
+                        </p>
+                    </div>
+
+                    <div class="hidden md:flex md:col-span-1 items-center justify-center text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </div>
+
+                    <div class="md:col-span-4 bg-emerald-950/20 rounded border border-emerald-500/20 p-3 relative">
+                        <span class="absolute -top-2 left-2 bg-slate-900 text-[9px] text-emerald-400 px-1.5 font-bold border border-emerald-500/20 rounded uppercase shadow-sm">Depois</span>
+                        <p class="text-emerald-300 text-sm mt-1 break-words font-bold">
+                            {{ diff.depois|default:"(Vazio)" }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if usuario_editor %}
+                <div class="mt-4 pt-4 border-t border-slate-800 text-right text-xs text-gray-500 italic flex justify-end items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    Última edição realizada por: <span class="text-gray-300 font-medium">{{ usuario_editor.first_name|default:usuario_editor.username }}</span> em {{ historico.data_edicao|date:"d/m/Y H:i" }}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden mb-8">
+            <div class="bg-slate-800/50 p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-white font-bold text-lg flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg>
+                    Ficha Técnica do Registro
+                </h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="lg:col-span-2 bg-slate-800 p-4 rounded-lg border border-slate-700 flex flex-col justify-center h-24 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-2 opacity-5"><svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-5.5-2.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM10 12a5.99 5.99 0 00-4.793 2.39A9.916 9.916 0 0010 18c2.695 0 5.13-1.07 6.793-2.61A5.99 5.99 0 0010 12z" clip-rule="evenodd" /></svg></div>
+                        <label class="text-gray-500 text-[10px] uppercase font-bold mb-1 block tracking-wider">Colaborador</label>
+                        <div class="flex items-center gap-3 relative z-10">
+                            <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow shrink-0 border-2 border-slate-700">
+                                {{ apontamento.colaborador.nome_completo|slice:":1" }}
+                            </div>
+                            <div class="overflow-hidden">
+                                <span class="block text-white font-bold leading-tight truncate text-base">{{ apontamento.colaborador.nome_completo }}</span>
+                                <span class="text-xs text-gray-400 truncate block">{{ apontamento.colaborador.cargo }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1 bg-slate-800 p-4 rounded-lg border border-slate-700 flex flex-col justify-center h-24 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-2 opacity-5"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd" /></svg></div>
+                        <label class="text-gray-500 text-[10px] uppercase font-bold mb-1 block tracking-wider">Data de Referência</label>
+                        <div class="relative z-10">
+                            <span class="text-white font-mono text-xl block font-bold tracking-tight">{{ apontamento.data_apontamento|date:"d/m/Y" }}</span>
+                            <span class="text-xs text-gray-500 uppercase font-semibold">{{ apontamento.data_apontamento|date:"l" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1 bg-slate-800 p-4 rounded-lg border border-slate-700 flex flex-col justify-center h-24 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-2 opacity-5"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg></div>
+                        <div class="flex justify-between items-center mb-1 relative z-10">
+                            <label class="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Horário</label>
+                            <span class="text-emerald-400 text-xs font-mono font-bold bg-emerald-900/30 px-2 rounded">{{ duracao_total }} h</span>
+                        </div>
+                        <div class="flex items-center gap-1 relative z-10">
+                            <span class="text-white font-mono text-lg font-bold">{{ apontamento.hora_inicio|time:"H:i" }}</span>
+                            <span class="text-gray-600 text-xs">às</span>
+                            <span class="text-white font-mono text-lg font-bold">{{ apontamento.hora_termino|time:"H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 bg-slate-800/80 p-4 rounded-lg border border-indigo-500/30 shadow-inner flex justify-between items-center">
+                    <div>
+                        <label class="text-indigo-400 text-xs uppercase font-bold mb-1 block">Local de Trabalho / Obra</label>
+                        <div class="text-white text-lg font-bold">
+                            {% if apontamento.projeto %}
+                                <span class="text-indigo-300 font-mono mr-2">{{ apontamento.projeto.codigo }}</span> {{ apontamento.projeto.nome }}
+                            {% elif apontamento.codigo_cliente %}
+                                <span class="text-blue-300 font-mono mr-2">{{ apontamento.codigo_cliente.codigo }}</span> {{ apontamento.codigo_cliente.nome }}
+                            {% elif apontamento.centro_custo %}
+                                <span class="text-orange-300 font-mono mr-2">CC</span> {{ apontamento.centro_custo.nome }}
+                            {% else %}
+                                <span class="text-gray-500 italic">Não informado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if apontamento.latitude and apontamento.longitude %}
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ apontamento.latitude|stringformat:'f' }},{{ apontamento.longitude|stringformat:'f' }}" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg transition-colors shadow-lg" title="Ver no Mapa">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 103 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 002.273 1.765 11.842 11.842 0 00.976.544l.062.029.006.003.002.001.003.001a.75.75 0 01-.01-1.499.75.75 0 01.01 1.5zM10 13a4 4 0 100-8 4 4 0 000 8z" clip-rule="evenodd" /></svg>
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <label class="text-gray-500 text-xs uppercase font-bold mb-1 block">Observações do Colaborador</label>
+                        <div class="bg-slate-950 p-4 rounded border border-slate-800 text-gray-300 italic min-h-[80px] text-sm">
+                            {{ apontamento.ocorrencias|default:"Nenhuma observação registrada."|linebreaksbr }}
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="text-gray-500 text-xs uppercase font-bold mb-1 block">Adicionais</label>
+                        <div class="flex flex-col gap-2">
+                            {% if apontamento.veiculo %}<span class="bg-slate-700 px-3 py-2 rounded text-xs font-bold text-gray-300 border border-slate-600 flex items-center gap-2">🚗 {{ apontamento.veiculo }}</span>{% endif %}
+                            {% if apontamento.veiculo_manual_modelo %}<span class="bg-slate-700 px-3 py-2 rounded text-xs font-bold text-gray-300 border border-slate-600 flex items-center gap-2">🚙 {{ apontamento.veiculo_manual_modelo }} <span class="text-gray-500">({{ apontamento.veiculo_manual_placa }})</span></span>{% endif %}
+                            {% if apontamento.em_plantao %}<span class="bg-red-900/30 text-red-300 px-3 py-2 rounded text-xs font-bold border border-red-900/50 flex items-center gap-2">🚨 Plantão</span>{% endif %}
+                            {% if apontamento.dorme_fora %}<span class="bg-indigo-900/30 text-indigo-300 px-3 py-2 rounded text-xs font-bold border border-indigo-900/50 flex items-center gap-2">🌙 Dorme Fora</span>{% endif %}
+                            {% if not apontamento.veiculo and not apontamento.veiculo_manual_modelo and not apontamento.em_plantao and not apontamento.dorme_fora %}
+                                <span class="text-gray-600 text-xs italic p-2 border border-slate-800 rounded bg-slate-900/50">Nenhum adicional registrado.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if apontamento.status_aprovacao == 'EM_ANALISE' %}
+        <div class="bg-slate-900 rounded-xl border border-slate-700 p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 via-slate-900 to-emerald-600"></div>
+
+            <h3 class="text-white font-bold text-xl mb-2">Comentário da Gestão</h3>
+            <p class="text-gray-400 text-sm mb-6">Para <strong>Aprovar</strong> ou <strong>Rejeitar</strong>, a justificativa é obrigatória.</p>
+            
+            <form method="POST" action="{% url 'produtividade:processar_aprovacao' apontamento.id %}" class="flex flex-col gap-6" id="formDecisao">
+                {% csrf_token %}
+                <div>
+                    <label class="text-sm text-gray-300 mb-2 block font-bold">Observação / Justificativa </label>
+                    <textarea name="motivo_rejeicao" id="motivoInput" rows="3" placeholder="Insira o motivo da rejeição ou uma observação de aprovação..." class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-indigo-500 outline-none transition-colors"></textarea>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-4 pt-2">
+                    <button type="submit" name="acao" value="REJEITAR" class="btn-action order-2 md:order-1 flex-1 bg-transparent border-2 border-red-600 text-red-500 hover:bg-red-600 hover:text-white font-bold py-3 rounded-lg transition-all uppercase tracking-wide text-sm">Rejeitar</button>
+                    <button type="submit" name="acao" value="APROVAR" class="btn-action order-1 md:order-2 flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg transition-all uppercase tracking-wide text-sm hover:shadow-emerald-900/50">Aprovar Registro</button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+            <div class="mt-6 p-6 rounded-lg text-center border bg-slate-900 shadow-lg {% if apontamento.status_aprovacao == 'APROVADO' %}border-emerald-500/30{% elif apontamento.status_aprovacao == 'REJEITADO' %}border-red-500/30{% else %}border-slate-700{% endif %}">
+                <p class="text-gray-500 text-xs uppercase font-bold tracking-widest mb-2">Processo Finalizado</p>
+                <div class="text-2xl font-bold mb-2">
+                    {% if apontamento.status_aprovacao == 'APROVADO' %}
+                        <span class="text-emerald-400">✅ APROVADO</span>
+                    {% elif apontamento.status_aprovacao == 'REJEITADO' %}
+                        <span class="text-red-400">❌ REJEITADO</span>
+                    {% else %}
+                        <span class="text-gray-400">{{ apontamento.get_status_aprovacao_display }}</span>
+                    {% endif %}
+                </div>
+                {% if apontamento.motivo_rejeicao %}
+                    <div class="mt-4 bg-slate-800 inline-block p-3 rounded-lg max-w-2xl">
+                        <p class="text-xs text-gray-500 font-bold mb-1 text-left">Motivo/Feedback:</p>
+                        <p class="text-sm font-normal text-gray-300 italic">"{{ apontamento.motivo_rejeicao }}"</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="validation-modal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-slate-800 border border-red-500/50 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm">
+                    <div class="bg-slate-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-base font-semibold leading-6 text-white" id="modal-title">Justificativa Obrigatória</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-300">Para <strong>APROVAR</strong> ou <strong>REJEITAR</strong> um registro, é necessário informar uma observação ou motivo no campo de texto.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" onclick="closeValidationModal()" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto transition-colors">Entendi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function closeValidationModal() {
+            document.getElementById('validation-modal').classList.add('hidden');
+            document.getElementById('motivoInput').focus();
+        }
+
+        const buttons = document.querySelectorAll('.btn-action');
+        
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const motivo = document.getElementById('motivoInput').value;
+                
+                if(!motivo.trim()) {
+                    e.preventDefault();
+                    
+                    document.getElementById('validation-modal').classList.remove('hidden');
+                    document.getElementById('motivoInput').classList.add('border-red-500');
+                    document.getElementById('motivoInput').classList.remove('border-slate-600');
+                }
+            });
+        });
+
+        document.getElementById('motivoInput')?.addEventListener('input', function() {
+            this.classList.remove('border-red-500');
+            this.classList.add('border-slate-600');
+        });
+
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            document.getElementById('notif-titulo').innerText = titulo;
+            document.getElementById('notif-mensagem').innerText = msg;
+            const textarea = document.getElementById('notif-resposta');
+            textarea.value = resposta || ''; // Garante que não venha 'undefined'
+            
+            // Se já tiver resposta, bloqueia edição
+            if(resposta && resposta !== 'undefined' && resposta !== 'None') {
+                textarea.disabled = true;
+                textarea.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                textarea.disabled = false;
+                textarea.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Define a URL correta no form
+            document.getElementById('form-responder-notificacao').action = `/produtividade/notificacoes/responder/${id}/`;
+            
+            document.getElementById('modal-ler-notificacao').classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>

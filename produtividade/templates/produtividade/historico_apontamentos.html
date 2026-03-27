@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ titulo }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}">
     <style>
         tr.group:hover td { color: #e2e8f0; }
         /* Grid do Calendário */
@@ -34,7 +35,15 @@
             
             <div class="flex items-center gap-4 justify-end w-full xl:w-auto mt-4 xl:mt-0">
 
-                {% if is_gestor or is_owner %}
+                {% if is_owner %}
+                <a href="{% url 'produtividade:painel_owner' %}" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition flex items-center gap-2 shadow-lg shadow-emerald-900/20 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                        <path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />
+                    </svg>
+                    Painel Administrativo
+                </a>
+                
+                {% elif is_gestor %}
                 <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-500 transition flex items-center gap-2 shadow-lg shadow-amber-900/20 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                         <path fill-rule="evenodd" d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 001.075.676L10 15.082l5.925 2.844A.75.75 0 0017 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0010 2z" clip-rule="evenodd" />
@@ -42,22 +51,15 @@
                     Painel de Gestão
                 </a>
                 {% endif %}
-                
-                {% if is_owner %}
-                <button type="button" onclick="openExportModal()" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition flex items-center gap-2 shadow-lg shadow-emerald-900/20 whitespace-nowrap">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                        <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm4.75 6.75a.75.75 0 011.5 0v2.546l.943-1.048a.75.75 0 011.114 1.004l-2.25 2.5a.75.75 0 01-1.114 0l-2.25-2.5a.75.75 0 111.114-1.004l.943 1.048V8.75z" clip-rule="evenodd" />
-                    </svg>
-                    Exportar Excel
-                </button>
-                {% endif %}
 
+                {% if not is_owner %}
                 <button type="button" onclick="openCalendar()" class="rounded-md bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-500 transition flex items-center gap-2 shadow-lg shadow-teal-900/20 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                         <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd" />
                     </svg>
                     Verificar Registros
                 </button>
+                {% endif %}
 
                 <a href="{% url 'produtividade:novo_apontamento' %}" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500 transition flex items-center gap-2 shadow-lg shadow-indigo-900/20 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
@@ -67,33 +69,107 @@
                 </a>
 
                 <div class="relative group z-50">
-                    <div class="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-slate-600 ring-offset-2 ring-offset-slate-900 hover:bg-slate-600 transition-colors">
-                        {{ user.username|slice:":1"|upper }}
-                    </div>
-                    
-                    <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
-                        <div class="px-4 py-3 border-b border-slate-700">
-                            <p class="text-sm text-white font-bold truncate">
-                                {% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
-                            </p>
-                            <p class="text-xs text-gray-400 truncate">Conectado</p>
+                    <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                        {% if notificacoes_nao_lidas_count > 0 %}
+                        <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                        {% endif %}
+                    </button>
+
+                    <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                        <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                            <h3 class="text-sm font-bold text-white">Notificações</h3>
+                            {% if notificacoes_nao_lidas_count > 0 %}
+                            <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                            {% endif %}
                         </div>
-                        <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                            Configurações
-                        </a>
-                        <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
-                            {% csrf_token %}
-                        </form>
-                        <button type="button" onclick="document.getElementById('logout-form').submit();" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                                <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
-                                <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
-                            </svg>
-                            Sair do Sistema
-                        </button>
+                        <div class="max-h-64 overflow-y-auto">
+                            {% for notif in notificacoes_usuario %}
+                            <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                                class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                    <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                                </div>
+                                <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                            </div>
+                            {% empty %}
+                            <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
+
+                <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                    <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                        <div class="flex min-h-full items-center justify-center p-4">
+                            <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                                <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                    <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                                </div>
+                                <div class="p-6">
+                                    <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                        <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                    </div>
+                                    
+                                    <form id="form-responder-notificacao" method="POST">
+                                        {% csrf_token %}
+                                        <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                        <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                        <div class="mt-4 flex justify-end">
+                                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative group z-50">
+                        <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                            {{ user.username|slice:":1"|upper }}
+                        </div>
+
+                        <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                            
+                            <div class="px-4 py-3 border-b border-slate-700">
+                                <p class="text-sm text-white font-bold truncate">
+                                    {% if user.first_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-400 truncate">Conectado</p>
+                            </div>
+
+                            <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                Configurações
+                            </a>
+
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                        <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                    Sair do Sistema
+                                </button>
+                            </form>
+
+                        </div>
+                    </div>
             </div>
         </div>
 
@@ -108,6 +184,7 @@
                         <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Início</th>
                         <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Fim</th>
                         <th class="py-3 px-3 text-center text-xs font-bold text-indigo-400 uppercase">Total</th>
+                        <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Total Dia</th>
                         <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Obs</th>
                         <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Extras</th> 
                         <th class="py-3 px-3 text-center text-xs font-bold text-gray-400 uppercase">Info</th>
@@ -117,7 +194,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800">
                     {% for item in apontamentos_lista %}
-                    <tr class="hover:bg-slate-800/50 transition group">
+                    <tr class="hover:bg-slate-800/50 transition group {% if item.flag_atencao %}border-l-4 border-l-yellow-500 bg-yellow-900/10{% endif %}">
                         <td class="py-4 px-3 text-sm text-gray-300 font-medium whitespace-nowrap">{{ item.data|date:"d/m/Y" }}</td>
                         <td class="py-4 px-3 text-sm text-gray-400">{{ item.local_ref }}</td>
                         <td class="py-4 px-3 text-sm">
@@ -131,8 +208,42 @@
                         <td class="py-4 px-3 text-sm text-center font-mono text-emerald-400">{{ item.veiculo }}</td>
                         <td class="py-4 px-3 text-sm text-emerald-400 font-mono text-center">{{ item.inicio|time:"H:i" }}</td>
                         <td class="py-4 px-3 text-sm text-red-400 font-mono text-center">{{ item.termino|time:"H:i" }}</td>
-                        <td class="py-4 px-3 text-sm text-white font-bold font-mono text-center bg-slate-800/30">{{ item.duracao }}</td>
-                        
+                        <td class="py-4 px-3 text-sm text-white font-bold font-mono text-center bg-slate-800/30">
+                            <div class="flex items-center justify-center gap-2">
+                                <span>{{ item.duracao }}</span>
+
+                                {% if item.flag_atencao %}
+                                <div class="relative group/alert cursor-help">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    
+                                    <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-900 border border-yellow-500/50 text-left rounded shadow-2xl opacity-0 invisible group-hover/alert:opacity-100 group-hover/alert:visible transition-all duration-200 z-[100]">
+                                        <div class="flex items-center gap-2 mb-1 border-b border-yellow-500/30 pb-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                            <span class="font-bold text-yellow-400 text-xs uppercase">Atenção</span>
+                                        </div>
+                                        <p class="text-xs text-gray-300 leading-relaxed">
+                                            {{ item.motivo_alerta }}
+                                        </p>
+                                        <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-center align-middle">
+                            {% if item.is_last_of_day %}
+                                <div class="flex justify-center">
+                                    <span class="font-mono text-sm font-bold {{ item.total_dia_class }} px-2 py-1 rounded border border-slate-700 shadow-sm min-w-[60px]">
+                                        {{ item.total_dia_str }}
+                                    </span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-800 text-xs select-none">|</span>
+                            {% endif %}
+                        </td>
+
                         <td class="py-4 px-3 text-center">
                             {% if item.obs %}
                                 <button type="button" onclick="openModal('Observações', `{{ item.obs|escapejs }}`)" class="text-gray-400 hover:text-white transition-colors" title="Ver Observação">
@@ -156,7 +267,7 @@
                                 </button>
 
                                 {% if item.latitude and item.longitude %}
-                                    <a href="http://googleusercontent.com/maps.google.com/maps?q={{ item.latitude|stringformat:'f' }},{{ item.longitude|stringformat:'f' }}" 
+                                    <a href="https://www.google.com/maps?q={{ item.latitude|stringformat:'f' }},{{ item.longitude|stringformat:'f' }}" 
                                        target="_blank" 
                                        class="text-emerald-400 hover:text-emerald-300 transition-colors"
                                        title="Abrir no Google Maps">
@@ -232,7 +343,27 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="12" class="text-center py-12 text-gray-500">Nenhum registro encontrado.</td></tr>
+                    <tr>
+                        <td colspan="13" class="text-center py-12">
+                            
+                            {% if bloqueia_data_antiga %}
+                                <div class="flex flex-col items-center justify-center gap-2 text-yellow-500/80">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <p class="text-sm font-bold uppercase tracking-wider">Visualização Arquivada</p>
+                                    <p class="text-xs text-gray-400 max-w-md mx-auto">
+                                        Este registro foi efetuado há mais de 30 dias. <br>
+                                        O detalhamento não está mais disponível para visualização direta.
+                                    </p>
+                                </div>
+
+                            {% else %}
+                                <span class="text-gray-500">Nenhum registro encontrado neste período.</span>
+                            {% endif %}
+
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -321,18 +452,17 @@
                                 <div class="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500"></div>
                                 <span class="text-gray-400">Preenchido</span>
                             </div>
+                            
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500"></div>
+                                <span class="text-gray-400">Incompleto</span>
+                            </div>
+
                             <div class="flex items-center gap-1">
                                 <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500"></div>
                                 <span class="text-gray-400">Pendente</span>
                             </div>
-                            <div class="flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
-                                <span class="text-gray-400">Dorme Fora</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-red-400" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clip-rule="evenodd" /></svg>
-                                <span class="text-gray-400">Plantão</span>
-                            </div>
+
                         </div>
                         <div id="owner-msg" class="hidden mt-2 text-center text-xs text-indigo-400 bg-indigo-900/20 p-2 rounded">Usuário Owner/Admin: Visualização apenas.</div>
                     </div>
@@ -349,47 +479,90 @@
         function closeModal(){modal.classList.add('hidden')}
         modal.addEventListener('click', function(e) { if (e.target === modal.querySelector('.fixed.inset-0.bg-gray-900\\/75')) { closeModal(); } });
 
-        function openExportModal(){const d=new Date();document.getElementById('export-start').value=new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0];document.getElementById('export-end').value=new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().split('T')[0];document.getElementById('export-modal').classList.remove('hidden')}
-        function submitExport(){const s=document.getElementById('export-start').value,e=document.getElementById('export-end').value;if(!s||!e)return alert('Datas?');window.location.href=`{% url 'produtividade:exportar_relatorio_excel' %}?start_date=${s}&end_date=${e}`;document.getElementById('export-modal').classList.add('hidden')}
+        function openExportModal() {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const firstDayLocal = new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const lastDayLocal = new Date(lastDay.getTime() - (lastDay.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+            document.getElementById('export-start').value = firstDayLocal;
+            document.getElementById('export-end').value = lastDayLocal;
+            
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function submitExport() {
+            const s = document.getElementById('export-start').value;
+            const e = document.getElementById('export-end').value;
+            
+            if (!s || !e) return alert('Por favor, selecione as datas de início e fim.');
+            
+            window.location.href = `{% url 'produtividade:exportar_relatorio_excel' %}?start_date=${s}&end_date=${e}`;
+            document.getElementById('export-modal').classList.add('hidden');
+        }
 
         let calDate=new Date();const cm=document.getElementById('calendar-modal'),cl=document.getElementById('calendar-month-label'),cg=document.getElementById('calendar-grid'),om=document.getElementById('owner-msg');
         function openCalendar(){cm.classList.remove('hidden');fetchCalendarData()}
         function closeCalendar(){cm.classList.add('hidden')}
         function changeMonth(d){calDate.setMonth(calDate.getMonth()+d);fetchCalendarData()}
         async function fetchCalendarData(){
-            const m=calDate.getMonth()+1,y=calDate.getFullYear();cl.textContent=calDate.toLocaleString('pt-BR',{month:'long',year:'numeric'});cg.innerHTML='Loading...';
-            try{const r=await fetch(`/produtividade/api/get-calendar-status/?month=${m}&year=${y}`),d=await r.json();if(d.is_owner)om.classList.remove('hidden');else om.classList.add('hidden');renderCalendar(d.days)}catch(e){cg.innerHTML='Erro.'}
+            const m = calDate.getMonth() + 1;
+            const y = calDate.getFullYear();
+            cl.textContent = calDate.toLocaleString('pt-BR', {month:'long', year:'numeric'});
+            cg.innerHTML = '<div class="col-span-7 text-center py-8 text-gray-500 italic">Carregando...</div>';
+            
+            try {
+                const r = await fetch(`/produtividade/api/get-calendar-status/?month=${m}&year=${y}`);
+                const d = await r.json();
+                
+                if(d.is_owner) om.classList.remove('hidden');
+                else om.classList.add('hidden');
+                
+                // AQUI: Passamos y e m explicitamente
+                renderCalendar(d.days, y, m);
+            } catch(e) {
+                console.error(e);
+                cg.innerHTML = '<div class="col-span-7 text-center py-8 text-red-500">Erro ao carregar.</div>';
+            }
         }
 
         function renderCalendar(daysData, year, month) {
             const calGrid = document.getElementById('calendar-grid');
             calGrid.innerHTML = '';
             
-            // Calcula o dia da semana do dia 1º para fazer o padding
             const firstDayIndex = new Date(year, month - 1, 1).getDay();
+
+            // Adiciona células vazias (padding)
             for (let i = 0; i < firstDayIndex; i++) { 
                 calGrid.appendChild(document.createElement('div')); 
             }
 
+            // Se daysData vier vazio por algum erro, não quebra o layout, apenas fica vazio
+            if (!daysData) return;
+
             daysData.forEach(d => {
                 const el = document.createElement('div');
                 
-                // Define as classes base
                 let className = "relative h-10 w-10 flex items-center justify-center rounded-lg text-sm font-bold border transition-all shadow-sm ";
                 
-                // Define as cores baseadas no status
                 if (d.status === 'filled') {
                     className += 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 cursor-pointer hover:bg-emerald-500/30 hover:scale-110';
+                } else if (d.status === 'incomplete') {
+                    className += 'bg-amber-500/20 text-amber-400 border-amber-500/50 cursor-pointer hover:bg-amber-500/30 hover:scale-110';
                 } else if (d.status === 'missing') {
                     className += 'bg-red-500/20 text-red-400 border-red-500/50 cursor-pointer hover:bg-red-500/30 hover:scale-110';
+                } else if (d.status === 'day_off') {
+                    className += 'bg-slate-800 text-slate-500 border-slate-700 opacity-70 cursor-default';
                 } else {
-                    className += 'bg-slate-800 text-gray-600 border-slate-700 opacity-50 cursor-default';
+                    // Future ou Neutro
+                    className += 'bg-slate-800 text-gray-700 border-slate-800 opacity-30 cursor-default';
                 }
                 
                 el.className = className;
                 el.textContent = d.day;
 
-                // Lógica Ícone 1: Dorme Fora (Lua no canto superior direito)
                 if (d.has_dorme_fora) {
                     const moonIcon = document.createElement('div');
                     moonIcon.className = 'absolute top-0.5 right-0.5';
@@ -397,17 +570,14 @@
                     el.appendChild(moonIcon);
                 }
 
-                // Lógica Ícone 2: Plantão (Relógio/Alerta no canto superior esquerdo)
-                // Nota: Certifique-se que sua API retorna 'has_plantao' ou 'em_plantao'
-                if (d.has_plantao || d.em_plantao) {
+                if (d.has_em_plantao) {
                     const fireIcon = document.createElement('div');
                     fireIcon.className = 'absolute top-0.5 left-0.5';
                     fireIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-red-400" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clip-rule="evenodd" /></svg>`;
                     el.appendChild(fireIcon);
                 }
 
-                // Ação de clique (apenas para dias passados/hoje)
-                if (d.status !== 'future') {
+                if (d.status !== 'future' && d.status !== 'day_off') {
                     el.onclick = function() { window.location.href = `?start_date=${d.date}&end_date=${d.date}`; };
                 }
 
@@ -422,6 +592,27 @@
             document.getElementById('modalAjuste').classList.remove('hidden');
         }
         function fecharModal(){document.getElementById('modalAjuste').classList.add('hidden')}
+
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            document.getElementById('notif-titulo').innerText = titulo;
+            document.getElementById('notif-mensagem').innerText = msg;
+            const textarea = document.getElementById('notif-resposta');
+            textarea.value = resposta;
+            
+            // Se já tiver resposta, bloqueia edição (opcional, remova 'disabled' se quiser permitir editar)
+            if(resposta) {
+                textarea.disabled = true;
+                textarea.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                textarea.disabled = false;
+                textarea.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Define a URL correta no form
+            document.getElementById('form-responder-notificacao').action = `/produtividade/notificacoes/responder/${id}/`;
+            
+            document.getElementById('modal-ler-notificacao').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,700 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="bg-gray-950">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Conformidade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
+    <style>
+        .fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="text-gray-200 p-4 sm:p-8 min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        
+        {% if nome_feriado %}
+        <div class="mb-4 bg-indigo-900/30 border border-indigo-500/50 text-indigo-200 px-4 py-3 rounded-lg flex items-center gap-3 shadow-lg shadow-indigo-900/20 animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+                <p class="font-bold text-sm">FERIADO NESTA DATA</p>
+                <p class="text-xs text-indigo-300"><span class="uppercase font-bold text-white">{{ nome_feriado }}</span>. As metas de horas foram zeradas para este dia.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between mb-8 border-b border-slate-800 pb-4 gap-4 relative">
+            <div>
+
+                {% if is_owner %}
+                <a href="{% url 'produtividade:painel_owner' %}" class="text-indigo-400 hover:text-white text-sm font-bold flex items-center gap-1 mb-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd" /></svg>
+                    PAINEL ADMINISTRATIVO
+                </a>
+                {% endif %}
+
+                <h1 class="text-3xl font-bold text-white">Relatório de Envios</h1>
+                <p class="text-gray-400 text-sm">Monitoramento de carga horária diária</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 items-center mt-4 xl:mt-0">
+                
+                {% if is_feriado and lista_ausente|length == 0 and lista_incompleto|length == 0 %}
+                    <button type="button" disabled class="bg-slate-800 text-gray-500 font-bold py-2 px-4 rounded-lg flex items-center gap-2 cursor-not-allowed opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg>
+                        Sem Pendências
+                    </button>
+                {% else %}
+                    <button type="button" onclick="abrirModalNotificacao()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 shadow-lg shadow-indigo-900/20 transition-all whitespace-nowrap group">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                        </svg>
+                        Notificar Pendentes
+                    </button>
+                {% endif %}
+
+                <button type="button" onclick="document.getElementById('modal-aviso-manual').classList.remove('hidden')" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 border border-slate-600 transition-all ml-2 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+                        <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+                    </svg>
+                    Enviar Aviso
+                </button>
+
+                <div class="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700 shadow-sm">
+                    <a href="?data={{ prev_date }}" class="p-2 hover:bg-slate-700 rounded-md text-gray-400 hover:text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    </a>
+                    
+                    <div onclick="abrirModalCalendario()" class="px-4 py-1 text-center border-l border-r border-slate-700/50 mx-1 cursor-pointer group hover:bg-slate-700/50 transition rounded">
+                        <span class="block text-[10px] text-gray-500 font-bold uppercase tracking-wider group-hover:text-indigo-400 transition-colors">Data de Referência</span>
+                        <div class="flex items-center justify-center gap-2">
+                            <span class="text-white font-mono font-bold text-lg group-hover:text-indigo-300 transition-colors">{{ data_ref|date:"d/m/Y" }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 group-hover:text-indigo-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <a href="?data={{ next_date }}" class="p-2 hover:bg-slate-700 rounded-md text-gray-400 hover:text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    </a>
+                </div>
+
+                <div class="relative group z-50">
+                    <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                        {% if notificacoes_nao_lidas_count > 0 %}
+                        <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                        {% endif %}
+                    </button>
+
+                    <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                        <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                            <h3 class="text-sm font-bold text-white">Notificações</h3>
+                            {% if notificacoes_nao_lidas_count > 0 %}
+                            <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                            {% endif %}
+                        </div>
+                        <div class="max-h-64 overflow-y-auto">
+                            {% for notif in notificacoes_usuario %}
+                            <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                                class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                    <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                                </div>
+                                <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                            </div>
+                            {% empty %}
+                            <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                    <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                        <div class="flex min-h-full items-center justify-center p-4">
+                            <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                                <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                    <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                                </div>
+                                <div class="p-6">
+                                    <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                        <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                    </div>
+                                    
+                                    <form id="form-responder-notificacao" method="POST">
+                                        {% csrf_token %}
+                                        <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                        <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                        <div class="mt-4 flex justify-end">
+                                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative group z-50">
+                    <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+
+                    <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                        
+                        <div class="px-4 py-3 border-b border-slate-700">
+                            <p class="text-sm text-white font-bold truncate">
+                                {% if user.first_name %}
+                                    {{ user.first_name }} {{ user.last_name }}
+                                {% else %}
+                                    {{ user.username }}
+                                {% endif %}
+                            </p>
+                            <p class="text-xs text-gray-400 truncate">Conectado</p>
+                        </div>
+
+                        <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            </svg>
+                            Configurações
+                        </a>
+
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                    <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                    <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                                </svg>
+                                Sair do Sistema
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if messages %}
+            <div class="mb-6 space-y-2">
+                {% for message in messages %}
+                    <div class="p-4 rounded-lg border {% if message.tags == 'success' %}bg-emerald-900/30 border-emerald-500/50 text-emerald-400{% else %}bg-blue-900/30 border-blue-500/50 text-blue-400{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                <span class="text-xs text-gray-400 font-bold uppercase">Adesão Total</span>
+                <div class="text-2xl font-bold text-white">{{ percentual_adesao }}%</div>
+                <div class="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div class="bg-indigo-500 h-full" style="width: {{ percentual_adesao|stringformat:'d' }}%"></div>
+                </div>
+            </div>
+            <div class="bg-emerald-900/20 p-4 rounded-lg border border-emerald-500/30">
+                <span class="text-xs text-emerald-400 font-bold uppercase">Enviaram Corretamente</span>
+                <div class="text-2xl font-bold text-white">{{ lista_ok|length }} <span class="text-sm font-normal text-gray-400">colaboradores</span></div>
+            </div>
+            <div class="bg-yellow-900/20 p-4 rounded-lg border border-yellow-500/30">
+                <span class="text-xs text-yellow-400 font-bold uppercase">Horas Incompletas</span>
+                <div class="text-2xl font-bold text-white">{{ lista_incompleto|length }} <span class="text-sm font-normal text-gray-400">colaboradores</span></div>
+            </div>
+            <div class="bg-red-900/20 p-4 rounded-lg border border-red-500/30">
+                <span class="text-xs text-red-400 font-bold uppercase">Não Enviaram</span>
+                <div class="text-2xl font-bold text-white">{{ lista_ausente|length }} <span class="text-sm font-normal text-gray-400">colaboradores</span></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-full">
+                <div class="p-4 bg-red-950/30 border-b border-red-900/50 flex justify-between items-center">
+                    <h3 class="font-bold text-red-400 flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> AUSENTES (0h)</h3>
+                    <span class="text-xs bg-red-900 text-red-200 px-2 py-1 rounded-full font-bold">{{ lista_ausente|length }}</span>
+                </div>
+                <div class="p-2 overflow-y-auto max-h-[600px] flex-1">
+                    {% if not lista_ausente %}
+                        <div class="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center space-y-3">
+                            {% if nome_feriado %}
+                                <div class="w-12 h-12 rounded-full bg-indigo-900/50 flex items-center justify-center mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-indigo-200">Dia de Folga</p>
+                                    <p class="text-xs text-indigo-400/70">Feriado: {{ nome_feriado }}</p>
+                                    <p class="text-[10px] mt-1 text-gray-500">Nenhuma ausência registrada.</p>
+                                </div>
+                            {% else %}
+                                <p>Nenhum colaborador ausente.</p>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        {% for c in lista_ausente %}
+                        <div class="bg-slate-800/50 p-3 rounded mb-2 border border-slate-700 hover:border-red-500/50 transition-colors group">
+                            <div class="flex justify-between items-start">
+                                <div><p class="font-bold text-gray-200 text-sm group-hover:text-red-300 transition-colors">{{ c.nome }}</p><p class="text-[10px] text-gray-500 uppercase">{{ c.cargo }}</p></div>
+                                <div class="text-right"><span class="block text-red-500 font-mono font-bold text-sm bg-red-900/20 px-2 rounded">00:00</span></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-full">
+                <div class="p-4 bg-yellow-950/30 border-b border-yellow-900/50 flex justify-between items-center">
+                    <h3 class="font-bold text-yellow-400 flex items-center gap-2"><span class="w-2 h-2 bg-yellow-500 rounded-full"></span> INCOMPLETOS</h3>
+                    <span class="text-xs bg-yellow-900 text-yellow-200 px-2 py-1 rounded-full font-bold">{{ lista_incompleto|length }}</span>
+                </div>
+                <div class="p-2 overflow-y-auto max-h-[600px] flex-1">
+                    {% if not lista_incompleto %}
+                        <div class="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center"><p>Nenhum incompleto.</p></div>
+                    {% else %}
+                        {% for c in lista_incompleto %}
+                        <div class="bg-slate-800/50 p-3 rounded mb-2 border border-slate-700 hover:border-yellow-500/50 transition-colors group">
+                            <div class="flex justify-between items-center mb-1">
+                                <p class="font-bold text-gray-200 text-sm group-hover:text-yellow-200 transition-colors">{{ c.nome }}</p>
+                                <span class="text-yellow-500 font-mono font-bold text-sm bg-yellow-900/20 px-2 rounded">{{ c.total_str }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500">{{ c.qtd_registros }} registros</span>
+                                <span class="text-red-400 font-mono font-bold">Faltam {{ c.saldo_negativo }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-full">
+                <div class="p-4 bg-emerald-950/30 border-b border-emerald-900/50 flex justify-between items-center">
+                    <h3 class="font-bold text-emerald-400 flex items-center gap-2"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span> ENVIADOS (OK)</h3>
+                    <span class="text-xs bg-emerald-900 text-emerald-200 px-2 py-1 rounded-full font-bold">{{ lista_ok|length }}</span>
+                </div>
+                <div class="p-2 overflow-y-auto max-h-[600px] flex-1">
+                    {% if not lista_ok %}
+                        <div class="h-full flex flex-col items-center justify-center text-gray-500 p-8 text-center">
+                            {% if nome_feriado %}
+                                <p>Nenhum envio (Feriado).</p>
+                            {% else %}
+                                <p>Nenhum enviado.</p>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        {% for c in lista_ok %}
+                        <div class="bg-slate-800/50 p-3 rounded mb-2 border border-slate-700 hover:border-emerald-500/50 transition-colors flex justify-between items-center group">
+                            <div>
+                                <p class="font-bold text-gray-200 text-sm group-hover:text-emerald-300 transition-colors">{{ c.nome }}</p>
+                                <div class="flex gap-2 text-[10px] text-gray-500 uppercase mt-0.5"><span>{{ c.qtd_registros }} reg.</span></div>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-emerald-400 font-mono font-bold text-sm bg-emerald-900/20 px-2 rounded">{{ c.total_str }}</span>
+                                {% if c.saldo_positivo %}<span class="text-[10px] text-indigo-400 font-mono block mt-1">{{ c.saldo_positivo }} Extra</span>{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-notificacao" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg fade-in">
+                    <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">Confirmar Disparo</h3>
+                        <button onclick="fecharModalNotificacao()" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4 bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-lg flex gap-3 items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div>
+                                <p class="text-sm text-indigo-200 font-bold mb-1">Atenção!</p>
+                                <p class="text-xs text-gray-400 leading-relaxed">
+                                    Isso enviará uma notificação para <b>TODOS</b> os colaboradores que constam como <b>Ausentes</b> ou <b>Incompletos</b> no dia <span class="text-white font-mono font-bold">{{ data_ref|date:"d/m/Y" }}</span>.
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-center text-xs text-gray-500">Deseja prosseguir com o envio?</p>
+                    </div>
+                    <div class="bg-slate-800/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2 border-t border-slate-700">
+                        <form action="{% url 'produtividade:notificar_pendencias' %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="data_ref" value="{{ data_ref_str }}">
+                            <button type="submit" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 sm:w-auto transition-colors">Confirmar</button>
+                        </form>
+                        <button type="button" onclick="fecharModalNotificacao()" class="mt-3 inline-flex w-full justify-center rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm hover:bg-slate-600 sm:mt-0 sm:w-auto transition-colors">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg fade-in">
+                    
+                    <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>
+                            <span id="notif-titulo">Mensagem</span>
+                        </h3>
+                        <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+
+                    <div class="p-6">
+                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                            <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Mensagem do Sistema</p>
+                            <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">...</p>
+                        </div>
+                        
+                        <form id="form-responder-notificacao" method="POST">
+                            {% csrf_token %}
+                            
+                            <div id="area-resposta">
+                                <label class="block text-xs font-bold text-indigo-400 uppercase mb-2" id="label-resposta">Sua Resposta</label>
+                                <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none placeholder-gray-600" placeholder="Escreva aqui..."></textarea>
+                            </div>
+
+                            <div class="mt-4 flex justify-end" id="btn-responder-wrapper">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-calendario" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-800 border border-slate-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md fade-in">
+                    
+                    <div class="bg-slate-900 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">Verificar Registros</h3>
+                        <button onclick="fecharModalCalendario()" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+
+                    <div class="p-6">
+                        <div class="flex justify-between items-center text-white mb-4 px-2">
+                            <button type="button" onclick="mudarMes(-1)" class="p-2 hover:bg-slate-700 rounded-full text-teal-400 font-bold transition-colors"><</button>
+                            <span id="cal-label" class="font-bold text-lg uppercase tracking-wider text-white"></span>
+                            <button type="button" onclick="mudarMes(1)" class="p-2 hover:bg-slate-700 rounded-full text-teal-400 font-bold transition-colors">></button>
+                        </div>
+
+                        <div class="grid grid-cols-7 mb-2 text-center text-xs text-gray-500 font-bold"><div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div></div>
+                        <div id="cal-grid" class="calendar-grid">
+                            <div class="col-span-7 text-center py-8 text-gray-500 italic">Carregando...</div>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-slate-700 flex gap-4 justify-center text-xs flex-wrap">
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-md border border-emerald-500 bg-transparent"></div>
+                                <span class="text-gray-400">Dia Atual</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-3 rounded-md bg-indigo-600"></div>
+                                <span class="text-gray-400">Selecionado</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-aviso-manual" class="relative z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/80 transition-opacity backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg fade-in">
+                    <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>
+                            Nova Mensagem Direta
+                        </h3>
+                        <button onclick="document.getElementById('modal-aviso-manual').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                    </div>
+                    <div class="p-6">
+                        <form action="{% url 'produtividade:enviar_aviso_personalizado' %}" method="POST" class="space-y-4" id="formAviso" onsubmit="preencherDataAntesDoEnvio()">
+                            {% csrf_token %}
+                            
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Destinatário</label>
+                                <select name="colaborador_id" class="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm focus:border-indigo-500 outline-none" required>
+                                    <option value="">-- Selecione o Colaborador --</option>
+                                    {% for c in todos_colaboradores %}
+                                        <option value="{{ c.id }}">{{ c.nome_completo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Título / Assunto</label>
+                                <input type="text" name="titulo" class="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Ex: Ajuste de Banco de Horas" required>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Mensagem</label>
+                                <textarea name="mensagem" rows="4" class="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Digite sua mensagem aqui..." required></textarea>
+                            </div>
+
+                            <div class="pt-4 flex justify-end gap-2">
+                                <button type="button" onclick="document.getElementById('modal-aviso-manual').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded hover:bg-slate-600 text-sm">Cancelar</button>
+                                
+                                <input type="hidden" name="data_referencia" id="input_data_ref_hidden" value="">
+                                
+                                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-500 text-sm">Enviar Mensagem</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Preencher Data no Envio Manual ---
+        function preencherDataAntesDoEnvio() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataNaUrl = urlParams.get('data'); 
+            
+            const inputHidden = document.getElementById('input_data_ref_hidden');
+            
+            if (inputHidden) {
+                if (dataNaUrl) {
+                    inputHidden.value = dataNaUrl;
+                } else {
+                    const now = new Date();
+                    // Ajuste de fuso horário para o input hidden também
+                    const hoje = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    inputHidden.value = hoje;
+                }
+            }
+        }
+
+        // --- Modais Gerais ---
+        const modalNotif = document.getElementById('modal-notificacao');
+        function abrirModalNotificacao() { modalNotif.classList.remove('hidden'); }
+        function fecharModalNotificacao() { modalNotif.classList.add('hidden'); }
+
+        // --- Notificações ---
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            const elTitulo = document.getElementById('notif-titulo');
+            const elMsg = document.getElementById('notif-mensagem');
+            const elTextarea = document.getElementById('notif-resposta');
+            const elLabel = document.getElementById('label-resposta');
+            const btnWrapper = document.getElementById('btn-responder-wrapper');
+            const form = document.getElementById('form-responder-notificacao');
+            const modal = document.getElementById('modal-ler-notificacao');
+
+            elTitulo.innerText = titulo;
+            elMsg.innerText = msg;
+            elTextarea.value = resposta || '';
+            form.action = `/produtividade/notificacoes/responder/${id}/`;
+
+            const isOwnerView = "{{ is_owner_view|yesno:'true,false' }}" === "true";
+
+            if (isOwnerView) {
+                if(elLabel) {
+                    elLabel.innerText = "Resposta do Colaborador";
+                    elLabel.classList.remove('text-indigo-400');
+                    elLabel.classList.add('text-emerald-400');
+                }
+                elTextarea.disabled = true;
+                elTextarea.classList.remove('bg-slate-800', 'text-white', 'focus:border-indigo-500');
+                elTextarea.classList.add('bg-emerald-900/20', 'text-emerald-200', 'border-emerald-500/50', 'opacity-100');
+                
+                if (!resposta) {
+                    elTextarea.value = "(Ainda não respondeu)";
+                    elTextarea.classList.add('italic', 'text-gray-500');
+                }
+                if(btnWrapper) btnWrapper.style.display = 'none';
+            } else {
+                if(elLabel) {
+                    elLabel.innerText = "Sua Resposta / Justificativa";
+                    elLabel.classList.add('text-indigo-400');
+                    elLabel.classList.remove('text-emerald-400');
+                }
+                if (resposta && resposta !== 'None' && resposta !== '') {
+                    elTextarea.disabled = true;
+                    elTextarea.classList.add('opacity-50', 'cursor-not-allowed');
+                    if(btnWrapper) btnWrapper.style.display = 'none';
+                } else {
+                    elTextarea.disabled = false;
+                    elTextarea.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-emerald-900/20', 'italic', 'text-gray-500');
+                    elTextarea.classList.add('bg-slate-800', 'text-white');
+                    if(btnWrapper) btnWrapper.style.display = 'flex';
+                }
+            }
+            modal.classList.remove('hidden');
+        }
+
+        // --- Calendário ---
+        let dataAtualCal = new Date("{{ data_ref_str }}T12:00:00");
+        const modalCal = document.getElementById('modal-calendario');
+        const labelMes = document.getElementById('cal-label');
+        const gridCal = document.getElementById('cal-grid');
+
+        // CORREÇÃO DA DATA DE HOJE (Fuso Horário Brasil)
+        const now = new Date();
+        const hojeStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+        function abrirModalCalendario() {
+            modalCal.classList.remove('hidden');
+            carregarCalendario();
+        }
+        function fecharModalCalendario() { modalCal.classList.add('hidden'); }
+
+        function mudarMes(delta) {
+            dataAtualCal.setMonth(dataAtualCal.getMonth() + delta);
+            carregarCalendario();
+        }
+
+        async function carregarCalendario() {
+            const mes = dataAtualCal.getMonth() + 1;
+            const ano = dataAtualCal.getFullYear();
+            
+            const nomeMes = dataAtualCal.toLocaleString('pt-BR', { month: 'long' });
+            labelMes.textContent = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)} ${ano}`;
+            
+            gridCal.innerHTML = `
+                <div class="col-span-7 flex justify-center py-8">
+                    <svg class="animate-spin h-6 w-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>`;
+
+            try {
+                const resp = await fetch(`/produtividade/api/get-calendar-status/?month=${mes}&year=${ano}`);
+                const dados = await resp.json();
+                renderizarGrid(dados.days || [], ano, mes, dados.is_owner);
+            } catch (e) {
+                console.error(e);
+                gridCal.innerHTML = '<div class="col-span-7 text-center py-4 text-red-400 text-xs">Falha ao carregar dados.</div>';
+            }
+        }
+
+        function renderizarGrid(dias, ano, mes, isOwner) {
+            gridCal.innerHTML = '';
+            
+            const primeiroDia = new Date(ano, mes - 1, 1).getDay();
+            for (let i = 0; i < primeiroDia; i++) gridCal.appendChild(document.createElement('div'));
+
+            if (dias.length === 0) {
+                const lastDay = new Date(ano, mes, 0).getDate();
+                for(let i=1; i<=lastDay; i++) {
+                    const dStr = `${ano}-${String(mes).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                    dias.push({day: i, date: dStr, status: 'empty', is_owner: isOwner});
+                }
+            }
+
+            dias.forEach(d => {
+                const el = document.createElement('div');
+                // Base class: box-border é importante para bordas internas
+                let cl = "relative h-10 w-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all shadow-sm box-border ";
+                
+                const isSelected = (d.date === "{{ data_ref_str }}");
+                const isToday = (d.date === hojeStr);
+
+                // 1. Definição de Cores de Fundo e Status
+                if (isSelected) {
+                    cl += "bg-indigo-600 text-white border border-indigo-400 z-20 scale-110 shadow-lg cursor-pointer ";
+                } else if (d.status === 'filled') {
+                    cl += 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 cursor-pointer hover:bg-emerald-500/30 hover:scale-110 ';
+                } else if (d.status === 'incomplete') {
+                    cl += 'bg-amber-500/20 text-amber-400 border border-amber-500/50 cursor-pointer hover:bg-amber-500/30 hover:scale-110 ';
+                } else if (d.status === 'missing') {
+                    cl += 'bg-red-500/20 text-red-400 border border-red-500/50 cursor-pointer hover:bg-red-500/30 hover:scale-110 ';
+                } else if (d.status === 'day_off') {
+                    cl += 'bg-slate-800 text-slate-500 border border-slate-700 opacity-70 cursor-default ';
+                } else if (d.status === 'future') {
+                    cl += 'bg-slate-800 text-gray-700 border border-slate-800 opacity-30 cursor-default pointer-events-none ';
+                } else {
+                    cl += 'bg-slate-800 text-gray-400 border border-slate-700 hover:bg-slate-700 hover:text-white cursor-pointer ';
+                }
+
+                // 2. Lógica para "HOJE" (Reforçada)
+                // Usamos ring-2 (anel interno) para garantir visibilidade sobre qualquer outra borda
+                if (isToday && !isSelected) {
+                    cl += " ring-2 ring-emerald-500 text-emerald-400 font-extrabold"; 
+                }
+
+                el.className = cl;
+                el.textContent = d.day;
+
+                // 3. Ícones
+                if (d.has_dorme_fora) {
+                    const moonIcon = document.createElement('div');
+                    moonIcon.className = 'absolute top-0.5 right-0.5';
+                    moonIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-indigo-400" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>`;
+                    el.appendChild(moonIcon);
+                }
+                if (d.has_em_plantao) {
+                    const fireIcon = document.createElement('div');
+                    fireIcon.className = 'absolute top-0.5 left-0.5';
+                    fireIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-red-400" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clip-rule="evenodd" /></svg>`;
+                    el.appendChild(fireIcon);
+                }
+
+                // Ícones do Chefe
+                if (isOwner) {
+                    if (d.status === 'filled') { 
+                        const icon = document.createElement('div');
+                        icon.className = 'absolute -top-1.5 -right-1.5 bg-slate-900 rounded-full border border-emerald-900';
+                        icon.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`;
+                        el.appendChild(icon);
+                    } else if (d.status === 'incomplete') {
+                        const icon = document.createElement('div');
+                        icon.className = 'absolute -top-1.5 -right-1.5 bg-slate-900 rounded-full border border-yellow-900';
+                        icon.innerHTML = `<svg class="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`;
+                        el.appendChild(icon);
+                    }
+                    if (d.ja_notificado) {
+                        const icon = document.createElement('div');
+                        icon.className = 'absolute -top-1.5 -left-1.5 bg-slate-900 rounded-full border border-indigo-900 p-[1px]';
+                        icon.innerHTML = `<svg class="w-3 h-3 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>`;
+                        el.appendChild(icon);
+                    }
+                }
+
+                if (d.status !== 'future' && d.status !== 'day_off') {
+                    el.onclick = () => { window.location.href = '?data=' + d.date; };
+                }
+
+                gridCal.appendChild(el);
+            });
+        }
+    </script>
+</body>
+</html>

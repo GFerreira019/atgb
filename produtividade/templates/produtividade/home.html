@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menu Principal | Timesheet</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
 </head>
 <body class="h-full flex flex-col items-center justify-center p-6 relative">
 
@@ -66,8 +67,8 @@
                 </div>
             </a>
 
-            {% if is_gestor or user.is_superuser %}
-            <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-amber-600 rounded-xl border border-slate-700 hover:border-amber-500 transition-all duration-300 shadow-lg hover:shadow-amber-900/30 hover:-translate-y-1">
+            {% if user.is_superuser %}
+            <a href="{% url 'produtividade:painel_owner' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-amber-600 rounded-xl border border-slate-700 hover:border-amber-500 transition-all duration-300 shadow-lg hover:shadow-amber-900/30 hover:-translate-y-1">
                 <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-white/20 flex items-center justify-center text-amber-400 group-hover:text-white transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
                         <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
@@ -75,9 +76,29 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-white">Painel de Gestão</h3>
-                    <p class="text-sm text-gray-400 group-hover:text-amber-100">Aprovar horas da equipe</p>
+                    <h3 class="text-lg font-bold text-white">Painel Administrativo</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-amber-100">Central de controle e gestão estratégica</p>
                 </div>
+                <div class="ml-auto text-slate-600 group-hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                </div>
+            </a>
+            {% endif %}
+
+            {% if is_gestor and not user.is_superuser %}
+            <a href="{% url 'produtividade:aprovacao_dashboard' %}" class="group relative flex items-center gap-4 p-5 bg-slate-800 hover:bg-orange-600 rounded-xl border border-slate-700 hover:border-orange-500 transition-all duration-300 shadow-lg hover:shadow-orange-900/30 hover:-translate-y-1">
+                
+                <div class="h-12 w-12 rounded-full bg-slate-700 group-hover:bg-white/20 flex items-center justify-center text-orange-500 group-hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white">Painel de Aprovações</h3>
+                    <p class="text-sm text-gray-400 group-hover:text-orange-100">Gerenciar e aprovar horas da equipe</p>
+                </div>
+                
                 <div class="ml-auto text-slate-600 group-hover:text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
                 </div>

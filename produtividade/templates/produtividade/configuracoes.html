@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ titulo }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
     <style>
         .card-link {
             background-color: #1e293b; /* slate-800 */
@@ -24,14 +25,44 @@
         
         <div class="mb-6 border-b border-slate-800 pb-4 flex items-center justify-between relative">
             <div>
+                <a href="{% url 'produtividade:home' %}" class="text-indigo-400 hover:text-white text-sm font-bold flex items-center gap-1 mb-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd" /></svg>
+                    VOLTAR AO MENU
+                </a>
                 <h2 class="text-3xl font-bold text-white">{{ titulo }}</h2>
                 <p class="text-gray-400 text-sm">Opções de conta e sistema.</p>
             </div>
             
-            <a href="{% url 'produtividade:historico_apontamentos' %}" class="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.565a.75.75 0 01-.91 1.11L3.611 10.8a1.5 1.5 0 010-2.31l5.359-4.524a.75.75 0 11.91 1.11l-4.158 3.565H16.25A.75.75 0 0117 10z" clip-rule="evenodd" /></svg>
-                Voltar
-            </a>
+            <div class="relative group z-50">
+                <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                    {{ user.username|slice:":1"|upper }}
+                </div>
+
+                <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                    
+                    <div class="px-4 py-3 border-b border-slate-700">
+                        <p class="text-sm text-white font-bold truncate">
+                            {% if user.first_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </p>
+                        <p class="text-xs text-gray-400 truncate">Conectado</p>
+                    </div>
+
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                            </svg>
+                            Sair do Sistema
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -15,7 +15,15 @@ media/
 venv/
 env/
 .env
+.env.local
 
 # IDEs
 .vscode/
 .idea/
+
+# Dependências do Node.js
+zap-server/node_modules/
+node_modules/
+package-lock.json
+.wppconnect-auth/
+tokens/

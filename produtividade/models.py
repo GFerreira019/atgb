@@ -121,6 +121,8 @@ class Colaborador(models.Model):
     )
     nome_completo = models.CharField(max_length=255)
     cargo = models.CharField(max_length=100, default='Operador')
+    cidade = models.CharField(max_length=100, blank=True, null=True, help_text="Necessário para cálculo de feriados municipais")
+    uf = models.CharField(max_length=2, blank=True, null=True, help_text="Sigla do Estado (ex: SP, RJ)")
     
     user_account = models.OneToOneField(
         User, 
@@ -143,6 +145,14 @@ class Colaborador(models.Model):
         blank=True,
         related_name='gestores',
         verbose_name="Setores sob Gestão (Visão Admin/Gestor)"
+    )
+
+    telefone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="Whatsapp",
+        help_text="Formato: 19987654321"
     )
 
     class Meta:
@@ -180,6 +190,20 @@ class Veiculo(models.Model):
         return self.placa
 
 
+class Feriado(models.Model):
+    data = models.DateField(verbose_name="Data do Feriado")
+    descricao = models.CharField(max_length=100, verbose_name="Nome do Feriado")
+    cidade = models.CharField(max_length=100)
+    uf = models.CharField(max_length=2)
+
+    class Meta:
+        verbose_name = "Feriado"
+        verbose_name_plural = "Feriados"
+        unique_together = ('data', 'cidade', 'uf')
+
+    def __str__(self):
+        return f"{self.descricao} ({self.cidade}/{self.uf})"
+
 # ==============================================================================
 # TABELA PRINCIPAL (CORE)
 # ==============================================================================
@@ -212,7 +236,7 @@ class Apontamento(models.Model):
         verbose_name="Data"
     )
     hora_inicio = models.TimeField(verbose_name="Hora Início")
-    hora_termino = models.TimeField(verbose_name="Hora Término")
+    hora_termino = models.TimeField(verbose_name="Hora Término", null=True, blank=True)
     
     # --- 2. Localização e Contexto ---
     local_execucao = models.CharField(
@@ -362,6 +386,17 @@ class Apontamento(models.Model):
         verbose_name="Longitude"
     )
 
+    # --- 9. Controle de Alertas CLT ---
+    flag_atencao = models.BooleanField(
+        default=False,
+        verbose_name="Atenção Conformidade"
+    )
+    motivo_alerta = models.TextField(
+        blank=True, 
+        null=True,
+        verbose_name="Motivo do Alerta"
+    )
+
     @property
     def duracao_total_str(self):
         """Calcula a duração formatada HH:MM considerando virada de dia"""
@@ -385,6 +420,11 @@ class Apontamento(models.Model):
         verbose_name = "Apontamento"
         verbose_name_plural = "Apontamentos"
         ordering = ['-data_apontamento', '-id']
+        indexes = [
+            models.Index(fields=['colaborador', 'data_apontamento']),
+            models.Index(fields=['data_apontamento']),
+            models.Index(fields=['status_aprovacao']),
+        ]
 
     def __str__(self):
         return f"{self.colaborador} - {self.data_apontamento}"
@@ -430,3 +470,106 @@ class ApontamentoHistorico(models.Model):
 
     def __str__(self):
         return f"V{self.numero_edicao} - {self.apontamento_original}"
+    
+
+# ==============================================================================
+# TABELAS DE NOTIFICAÇÕES E ALERTAS
+# ==============================================================================
+
+class Notificacao(models.Model):
+    """
+    Armazena alertas e mensagens do sistema para o colaborador.
+    Ex: "Horas incompletas", "Ajuste aprovado", etc.
+    """
+    TIPO_CHOICES = [
+        ('ALERTA', 'Alerta de Conformidade'),
+        ('INFO', 'Informativo Geral'),
+        ('SUCESSO', 'Conclusão de Processo'),
+    ]
+
+    colaborador = models.ForeignKey(
+        Colaborador, 
+        on_delete=models.CASCADE, 
+        related_name='notificacoes',
+        verbose_name="Destinatário"
+    )
+    
+    titulo = models.CharField(max_length=100, verbose_name="Título")
+    mensagem = models.TextField(verbose_name="Conteúdo da Mensagem")
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='INFO')
+    
+    lida = models.BooleanField(default=False, verbose_name="Lida?")
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    data_referencia = models.DateField(
+        null=True, 
+        blank=True, 
+        verbose_name="Data de Referência (Para Alertas)"
+    )
+
+    comentario_colaborador = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Resposta/Justificativa"
+    )
+
+    class Meta:
+        verbose_name = "Notificação"
+        verbose_name_plural = "Notificações"
+        ordering = ['-data_criacao']
+
+    def __str__(self):
+        return f"{self.colaborador.nome_completo} - {self.titulo}"
+    
+
+# ==============================================================================
+# TABELA RASTREABILIDADE DO SISTEMA
+# ==============================================================================
+
+class LogAuditoria(models.Model):
+    """
+    Tabela central de auditoria para rastrear todas as ações críticas do sistema.
+    """
+    ACAO_CHOICES = [
+        ('LOGIN', 'Login / Acesso'),
+        ('LOGOUT', 'Logout / Saída'),
+        ('LOGIN_FALHA', 'Falha de Login'),
+        ('CRIACAO', 'Criação de Registro'),
+        ('EDICAO', 'Edição de Registro'),
+        ('EXCLUSAO', 'Exclusão de Registro'),
+        ('APROVACAO', 'Aprovação de Apontamento'),
+        ('REJEICAO', 'Rejeição de Apontamento'),
+        ('SOLICITACAO', 'Solicitação de Ajuste'),
+        ('APROVACAO_AJUSTE', 'Aprovação de Ajuste'),
+        ('EXPORTACAO', 'Exportação de Dados'),
+    ]
+
+    usuario = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        verbose_name="Usuário Responsável",
+        db_index=True
+    )
+    
+    acao = models.CharField(max_length=20, choices=ACAO_CHOICES, db_index=True)
+    modelo_afetado = models.CharField(max_length=50, verbose_name="Módulo/Tabela")
+    
+    objeto_id = models.CharField(max_length=50, null=True, blank=True, verbose_name="ID do Objeto")
+    
+    detalhes = models.TextField(verbose_name="Detalhes da Ação", blank=True, null=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="Endereço IP")
+    
+    data_hora = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Log de Auditoria"
+        verbose_name_plural = "Logs de Auditoria"
+        ordering = ['-data_hora']
+        indexes = [
+            models.Index(fields=['data_hora', 'acao']),
+        ]
+
+    def __str__(self):
+        user_str = self.usuario.username if self.usuario else "Usuário Removido/Sistema"
+        return f"[{self.data_hora.strftime('%d/%m %H:%M')}] {user_str} - {self.acao}"

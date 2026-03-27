@@ -11,29 +11,35 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import dj_database_url
+import sentry_sdk
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Carrega as variáveis do arquivo .env
-load_dotenv() 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# Carrega as variáveis do arquivo .env
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Lendo do arquivo .env (Se não achar, usa um valor padrão inseguro)
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-x#*#@+qn#-vqqiyiudapl8uozjjzc(*dvt^&i*7k#_05at7%n0')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-dev-key-only-for-testing')
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# Em produção, isso deve ser False.
+# Lembrete: Se DEBUG=False, configurar os arquivos estáticos (final do arquivo)
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*'] # Em produção: ['127.0.0.1', 'localhost']
-
+# Lista de IPs/Domínios que podem acessar o site.
+# Ex no .env, em produção: ['127.0.0.1', 'localhost']
+allowed_hosts_env = os.getenv('DJANGO_ALLOWED_HOSTS')
+if allowed_hosts_env:
+    ALLOWED_HOSTS = allowed_hosts_env.split(',')
+else:
+    ALLOWED_HOSTS = ['*']
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -48,6 +54,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -65,10 +72,13 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
                 'django.template.context_processors.static',
+                'produtividade.context_processors.notificacoes_globais',
             ],
         },
     },
@@ -79,14 +89,31 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+DATABASE_URL = os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 }
 
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
+
+if REDIS_URL.startswith('redis://') or REDIS_URL.startswith('rediss://'):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'timesheet-cache-local',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -110,43 +137,102 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'pt-br' # Alterado para Português
+LANGUAGE_CODE = 'pt-br'
 
-TIME_ZONE = 'America/Sao_Paulo' # Alterado para horário de Brasília
+TIME_ZONE = 'America/Sao_Paulo' 
 
 USE_I18N = True
 
 USE_TZ = True
 
+# CSS/JS do sistema
+STATIC_URL = '/static/'
+# Onde o Django vai "juntar" todos os arquivos quando rodar 'python manage.py collectstatic'
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
+# Uploads de Usuários (Fotos, comprovantes)
+MEDIA_URL = '/media/'
+# Pasta física onde os arquivos serão salvos
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
-# --- CONFIGURAÇÕES DE REDIRECIONAMENTO ---
-# 'home' é o nome da rota que definimos em urls.py que decide o destino (Gestor vs Operacional)
+# Configurações de Redirecionamento
 LOGIN_REDIRECT_URL = 'home' 
-
-# Para onde ir após clicar em Sair (volta para a tela de login)
 LOGOUT_REDIRECT_URL = 'login'
-
-# Define o redirecionamento após a troca de senha (Volta para o Login)
 PASSWORD_CHANGE_DONE_URL = '/accounts/login/'
 
-# CONFIGURAÇÃO DE SEGURANÇA DA API
-# Configuração da API Key lendo do .env (no laravel está em [DjangoSyncService.php])
-DJANGO_API_KEY = os.getenv('DJANGO_API_KEY', 'chave_secreta_123')
+# Segurança da API
+DJANGO_API_KEY = os.getenv('DJANGO_API_KEY')
 
 # Configurações CORS
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8081",  # Local do Dashboard PHP
     "http://localhost:8081",  # Variação comum
 ]
+
+# Configurações de Logs
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'erros_sistema.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # Seus loggers customizados
+        'auditoria': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'services': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'main': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Sentry
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+        send_default_pii=True,
+    )

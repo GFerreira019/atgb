@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=2">
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <style>
@@ -47,55 +48,206 @@
         .btn-remover-obra { flex-shrink: 0; width: 40px; }
         .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Animação dos ícones dentro do Switch */
+        #mode-toggle:checked ~ #switch-knob .icon-manual {
+            opacity: 0;
+            transform: scale(0.5) rotate(-90deg);
+        }
+
+        #mode-toggle:checked ~ #switch-knob .icon-checkin {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+
     </style>
 </head>
 <body class="bg-gray-950 text-gray-200 p-4 sm:p-8 flex justify-center">
 
-    {% if messages %}
-        <div class="fixed top-5 right-5 z-50 space-y-2">
+    <div id="page-loader" class="fixed inset-0 bg-slate-950 z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+        <p class="text-indigo-400 font-bold animate-pulse">Sincronizando Cronômetro...</p>
+    </div>
+
+    <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-2">
+        {% if messages %}
             {% for message in messages %}
-                <div class="flex items-center p-4 mb-4 text-sm text-emerald-800 rounded-lg bg-emerald-50 border border-emerald-500 shadow-lg" role="alert" id="toast-message">
+                <div class="flex items-center p-4 mb-4 text-sm text-emerald-800 rounded-lg bg-emerald-50 border border-emerald-500 shadow-lg" role="alert">
                     <svg class="flex-shrink-0 inline w-5 h-5 me-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg>
-                    <div><span class="font-medium">Sucesso!</span> {{ message }}</div>
+                    <div><span class="font-medium">Aviso!</span> {{ message }}</div>
                     <button type="button" class="ms-auto -mx-1.5 -my-1.5 bg-emerald-50 text-emerald-500 rounded-lg p-1.5 hover:bg-emerald-200 h-8 w-8 flex items-center justify-center" onclick="this.parentElement.remove()">
                         <span class="sr-only">Fechar</span><svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
                     </button>
                 </div>
             {% endfor %}
-        </div>
+        {% endif %}
+    </div>
         <script>setTimeout(function() { const t = document.querySelectorAll('#toast-message'); t.forEach(e => e.remove()); }, 4000);</script>
-    {% endif %}
+
 
     <div class="w-full max-w-4xl">
-        <div class="mb-6 border-b border-slate-800 pb-4 flex items-center justify-between relative">
+        <div class="mb-6 border-b border-slate-800 pb-4 flex flex-col md:flex-row items-center justify-between relative gap-4">
             <div>
                 <h2 class="text-3xl font-bold text-white">{{ titulo }}</h2>
-                <p class="text-gray-400 text-sm">
-                    {% if is_editing %}Editando Registro #{{ apontamento_id }}{% else %}Novo Apontamento{% endif %}
-                </p>
                 
-                <div id="gps-status" class="mt-2 inline-flex items-center gap-2 text-xs font-bold text-gray-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Buscando GPS...</span>
+                <div class="flex flex-col items-start gap-2 mt-1">
+                    
+                    <p class="text-gray-400 text-sm">
+                        {% if is_editing %}Editando Registro #{{ apontamento_id }}{% else %}Novo Apontamento{% endif %}
+                    </p>
+
+                    <div id="gps-status" class="inline-flex items-center gap-2 text-xs font-bold text-gray-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Buscando GPS...</span>
+                    </div>
+                    
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <a href="{% url 'produtividade:historico_apontamentos' %}" class="text-indigo-400 hover:text-white border border-indigo-400/30 hover:border-indigo-400 bg-indigo-400/10 hover:bg-indigo-400/20 rounded-md px-4 py-2 text-sm font-medium transition-all flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg>Ver Histórico</a>
-                <div class="relative group z-50">
-                    <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">{{ user.username|slice:":1"|upper }}</div>
-                    <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
-                        <div class="px-4 py-3 border-b border-slate-700"><p class="text-sm text-white font-bold truncate">{% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</p><p class="text-xs text-gray-400 truncate">Conectado</p></div>
-                        <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>Configurações</a>
-                        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" /></svg>Sair do Sistema</button></form>
+            <div class="flex flex-col items-end gap-3">
+                {% if not is_editing %}
+                <div class="flex items-center gap-3 bg-slate-900/80 p-2.5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm {% if atividade_em_andamento %}opacity-50 pointer-events-none{% endif %}">
+                    
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest cursor-pointer transition-colors hover:text-white" onclick="document.getElementById('mode-toggle').click()">
+                        Manual
+                    </span>
+
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="mode-toggle" class="sr-only peer" {% if atividade_em_andamento %}checked disabled{% endif %}>
+                        
+                        <div class="w-14 h-7 bg-slate-800 border border-slate-700 rounded-full shadow-inner peer-focus:ring-2 peer-focus:ring-indigo-500/50 peer-checked:bg-slate-800 transition-colors"></div>
+
+                        <div id="switch-knob" class="absolute left-1 top-1 bg-gradient-to-br from-indigo-500 to-indigo-600 w-5 h-5 rounded-full shadow-lg transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] peer-checked:translate-x-7 peer-checked:from-emerald-500 peer-checked:to-emerald-600 flex items-center justify-center text-white z-10 pointer-events-none">
+                            <svg class="icon-manual w-3 h-3 absolute transition-all duration-300 opacity-100 scale-100 rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <svg class="icon-checkin w-3.5 h-3.5 absolute transition-all duration-300 opacity-0 scale-50 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </label>
+
+                    <span class="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest cursor-pointer transition-colors hover:text-emerald-400" onclick="document.getElementById('mode-toggle').click()">
+                        Check-in
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="flex items-center gap-4">
+                    <a href="{% url 'produtividade:historico_apontamentos' %}" class="text-indigo-400 hover:text-white border border-indigo-400/30 hover:border-indigo-400 bg-indigo-400/10 hover:bg-indigo-400/20 rounded-md px-4 py-2 text-sm font-medium transition-all flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg>Ver Histórico
+                    </a>
+
+                    <div class="relative group z-50">
+                        <button class="relative p-2 rounded-full hover:bg-slate-800 transition-colors text-gray-400 hover:text-white focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                            {% if notificacoes_nao_lidas_count > 0 %}
+                            <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-slate-900 animate-pulse">{{ notificacoes_nao_lidas_count }}</span>
+                            {% endif %}
+                        </button>
+
+                        <div class="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                            <div class="px-4 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                <h3 class="text-sm font-bold text-white">Notificações</h3>
+                                {% if notificacoes_nao_lidas_count > 0 %}
+                                <form action="{% url 'produtividade:marcar_todas_lidas' %}" method="POST" class="inline">{% csrf_token %}<button type="submit" class="text-xs text-indigo-400 hover:text-indigo-300">Marcar lidas</button></form>
+                                {% endif %}
+                            </div>
+                            <div class="max-h-64 overflow-y-auto">
+                                {% for notif in notificacoes_usuario %}
+                                <div onclick="abrirNotificacaoModal('{{ notif.id }}', `{{ notif.titulo|escapejs }}`, `{{ notif.mensagem|escapejs }}`, `{{ notif.comentario_colaborador|default:''|escapejs }}`)" 
+                                    class="px-4 py-3 border-b border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer {% if not notif.lida %}bg-slate-800/20 border-l-2 border-l-indigo-500{% endif %}">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-xs font-bold {% if notif.tipo == 'ALERTA' %}text-red-400{% else %}text-blue-400{% endif %}">{{ notif.get_tipo_display }}</span>
+                                        <span class="text-[10px] text-gray-500">{{ notif.data_criacao|date:"d/m H:i" }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300 font-medium mb-1 truncate">{{ notif.titulo }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ notif.mensagem }}</p>
+                                </div>
+                                {% empty %}
+                                <div class="px-4 py-8 text-center text-gray-500 text-sm">Nenhuma notificação.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-ler-notificacao" class="relative z-[9999] hidden" role="dialog" aria-modal="true">
+                        <div class="fixed inset-0 bg-gray-900/90 transition-opacity backdrop-blur-sm"></div>
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div class="flex min-h-full items-center justify-center p-4">
+                                <div class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700 text-left shadow-2xl w-full max-w-lg">
+                                    <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                                        <h3 class="text-lg font-bold text-white" id="notif-titulo">Titulo</h3>
+                                        <button onclick="document.getElementById('modal-ler-notificacao').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl font-bold">×</button>
+                                    </div>
+                                    <div class="p-6">
+                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 mb-6">
+                                            <p class="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap" id="notif-mensagem">Mensagem...</p>
+                                        </div>
+                                        
+                                        <form id="form-responder-notificacao" method="POST">
+                                            {% csrf_token %}
+                                            <label class="block text-xs font-bold text-indigo-400 uppercase mb-2">Sua Resposta / Justificativa</label>
+                                            <textarea name="resposta_texto" id="notif-resposta" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white text-sm focus:border-indigo-500 outline-none" placeholder="Escreva aqui para o gestor..."></textarea>
+                                            <div class="mt-4 flex justify-end">
+                                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded transition-colors text-sm">Enviar Resposta</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative group z-50">
+                        <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900 shadow-lg hover:bg-indigo-500 transition-colors">
+                            {{ user.username|slice:":1"|upper }}
+                        </div>
+
+                        <div class="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                            
+                            <div class="px-4 py-3 border-b border-slate-700">
+                                <p class="text-sm text-white font-bold truncate">
+                                    {% if user.first_name %}
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-400 truncate">Conectado</p>
+                            </div>
+
+                            <a href="{% url 'produtividade:configuracoes' %}" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                Configurações
+                            </a>
+
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 rounded-b-lg transition-colors flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                        <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 001.5 0v-2A3.75 3.75 0 0010.75.5h-5.5A3.75 3.75 0 001.5 4.25v11.5A3.75 3.75 0 005.25 18h5.5a3.75 3.75 0 003.75-3.75v-2a.75.75 0 00-1.5 0v2A2.25 2.25 0 0110.75 16h-5.5A2.25 2.25 0 013 13.75V4.25z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd" d="M15.353 9.47a.75.75 0 00-1.06 0l-1.75 1.75V4.75a.75.75 0 00-1.5 0v6.47l-1.75-1.75a.75.75 0 10-1.06 1.06l3 3a.75.75 0 001.06 0l3-3a.75.75 0 000-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                    Sair do Sistema
+                                </button>
+                            </form>
+
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <form method="post" class="space-y-6" id="apontamentoForm">
+        <form method="post" class="space-y-6" id="apontamentoForm" onsubmit="event.preventDefault();">
             {% csrf_token %}
+            <input type="hidden" name="tipo_acao" id="id_tipo_acao" value="MANUAL">
             {{ form.data_dorme_fora }} 
             {{ form.latitude }}
             {{ form.longitude }}
@@ -169,8 +321,56 @@
 
             <div id="common-fields-block" class="hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label class="text-xs text-gray-400 mb-1 block">Hora Início *</label>{{ form.hora_inicio }}</div>
-                    <div><label class="text-xs text-gray-400 mb-1 block">Hora Término *</label>{{ form.hora_termino }}</div>
+                    <div id="manual-start-input" class="{% if atividade_em_andamento %}hidden{% endif %}">
+                        <label class="text-xs text-gray-400 mb-1 block">Hora Início *</label>
+                        {{ form.hora_inicio }}
+                        {% if form.hora_inicio.errors %}
+                            <span class="text-red-500 text-xs">{{ form.hora_inicio.errors }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div id="manual-end-input" class="{% if atividade_em_andamento %}hidden{% endif %}">
+                        <label class="text-xs text-gray-400 mb-1 block">Hora Término *</label>
+                        {{ form.hora_termino }}
+                        {% if form.hora_termino.errors %}
+                            <span class="text-red-500 text-xs">{{ form.hora_termino.errors }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div id="checkin-btn-area" class="hidden md:col-span-2 {% if atividade_em_andamento %}!block{% endif %}">
+                        <div class="bg-slate-800/50 p-4 rounded border border-slate-700 flex flex-col items-center justify-center gap-3">
+                            
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" id="status-text">
+                                {% if atividade_em_andamento %}
+                                    ATIVIDADE INICIADA ÀS <span class="text-emerald-400 font-mono text-base">{{ form.hora_inicio.value }}</span>
+                                {% else %}
+                                    Aguardando Registro...
+                                {% endif %}
+                            </p>
+                            
+                            <button type="button" id="btn-action-main" class="w-full md:w-2/3 font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-3 text-lg transition-all active:scale-95 text-white
+                                {% if atividade_em_andamento %}
+                                    bg-red-600 hover:bg-red-500
+                                {% else %}
+                                    bg-emerald-600 hover:bg-emerald-500
+                                {% endif %}">
+                                
+                                {% if atividade_em_andamento %}
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    <span>REGISTRAR SAÍDA</span>
+                                {% else %}
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                    </svg>
+                                    <span>REGISTRAR ENTRADA</span>
+                                {% endif %}
+                            </button>
+                            
+                            <p class="text-[12px] text-gray-500 mt-1">Atenção: Não é possivel editar depois de iniciar.</p>
+                        </div>
+                    </div>
                     <div class="md:col-span-2 bg-slate-800/50 p-4 rounded border border-slate-700 mt-2">
                         <div class="flex items-center gap-3">
                             {{ form.registrar_auxiliar }}
@@ -205,7 +405,11 @@
                 </div>
             </div>
 
-            <div class="flex justify-end pt-4"><button type="button" id="btn-pre-save" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg w-full md:w-auto transition-colors">Salvar Registro</button></div>
+            <div class="flex justify-end pt-4">
+                <button type="button" id="btn-pre-save" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg w-full md:w-auto transition-colors {% if atividade_em_andamento %}hidden{% endif %}">
+                    Salvar Registro
+                </button>
+            </div>
         </form>
     </div>
 
@@ -249,6 +453,7 @@
                     <div class="bg-slate-700/30 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-3">
                         <button type="button" id="btn-confirm-submit" class="hidden inline-flex w-full justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:w-auto">Confirmar e Enviar</button>
                         <button type="button" onclick="closeConfirmModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm hover:bg-slate-600 sm:mt-0 sm:w-auto border border-slate-600">Voltar e Editar</button>
+                        <button type="button" id="btn-confirm-checkout" class="hidden inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">Confirmar Saída</button>
                     </div>
                 </div>
             </div>
@@ -256,7 +461,75 @@
     </div>
 
     <script>
+
+        function exibirToast(mensagem, tipo = 'sucesso') {
+            const container = document.getElementById('toast-container');
+            
+            // Configurações de cores baseadas no tipo
+            let classesCor = '';
+            let icone = '';
+            let titulo = '';
+
+            if (tipo === 'erro') {
+                classesCor = 'text-red-800 bg-red-50 border-red-500';
+                titulo = 'Erro!';
+                icone = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />';
+            } else {
+                // Sucesso (Padrão)
+                classesCor = 'text-emerald-800 bg-emerald-50 border-emerald-500';
+                titulo = 'Sucesso!';
+                icone = '<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>';
+            }
+
+            // Cria o elemento HTML
+            const toastHtml = `
+                <div class="flex items-center p-4 mb-4 text-sm ${classesCor} rounded-lg border shadow-lg animate-fadeIn" role="alert">
+                    <svg class="flex-shrink-0 inline w-5 h-5 me-3" fill="currentColor" viewBox="0 0 20 20">${icone}</svg>
+                    <div><span class="font-medium">${titulo}</span> ${mensagem}</div>
+                    <button type="button" class="ms-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 hover:bg-opacity-20 hover:bg-gray-500 h-8 w-8 flex items-center justify-center" onclick="this.parentElement.remove()">
+                        <span class="sr-only">Fechar</span>
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                    </button>
+                </div>
+            `;
+
+            // Converte string para elemento DOM e adiciona
+            const divTemp = document.createElement('div');
+            divTemp.innerHTML = toastHtml.trim();
+            const novoToast = divTemp.firstChild;
+            container.appendChild(novoToast);
+
+            // Remove automaticamente após 4 segundos
+            setTimeout(() => {
+                if (novoToast && novoToast.parentElement) novoToast.remove();
+            }, 4000);
+        }
+
         $(document).ready(function() {
+
+            // 1. Função para remover o Loader
+            function hidePageLoader() {
+                const loader = document.getElementById('page-loader');
+                if(loader) {
+                    loader.classList.add('opacity-0', 'pointer-events-none');
+                    // Opcional: remover do DOM após a transição
+                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                }
+            }
+
+            // 2. Função para mostrar o Loader (útil ao clicar em Salvar/Iniciar)
+            window.showPageLoader = function(texto = "Processando...") {
+                const loader = document.getElementById('page-loader');
+                if(loader) {
+                    loader.querySelector('p').innerText = texto;
+                    loader.style.display = 'flex';
+                    // Pequeno delay para permitir que o display:flex renderize antes de mexer na opacidade
+                    setTimeout(() => { 
+                        loader.classList.remove('opacity-0', 'pointer-events-none'); 
+                    }, 10);
+                }
+            }
+
             // ============================================
             // 1. INICIALIZAÇÃO DE VARIÁVEIS DO DOM
             // ============================================
@@ -280,7 +553,279 @@
             const containerExtras = document.getElementById('extras-container');
             const btnAddExtra = document.getElementById('btn-add-extra');
             const hiddenList = document.getElementById('id_auxiliares_extras_list');
+
+            const modeToggle = document.getElementById('mode-toggle');
+            const manualStart = document.getElementById('manual-start-input');
+            const manualEnd = document.getElementById('manual-end-input');
+            const checkinArea = document.getElementById('checkin-btn-area');
+            const btnAction = document.getElementById('btn-action-main');
+            const statusText = document.getElementById('status-text');
+            const submitBtn = document.getElementById('btn-pre-save');
+
+            const btnConfirmCheckout = document.getElementById('btn-confirm-checkout');
             
+            let isCheckedIn = false; 
+
+            // Função melhorada para verificar status no servidor
+            function checkServerStatus() {
+                $.get("{% url 'produtividade:api_status_cronometro' %}")
+                .done((data) => {
+                    if (data.ativo) {
+                        isCheckedIn = true;
+                        
+                        // 1. Configura Botão de Ação e Texto
+                        updateButtonState('OUT', data.inicio_str);
+                        const statusHtml = `Atividade em andamento desde <span class="text-emerald-400 font-mono text-lg">${data.inicio_str}</span> (${data.data_registro}).`;
+                        $('#status-text').html(statusHtml);
+                        
+                        // 2. Trava Switch em Check-in
+                        const modeToggle = document.getElementById('mode-toggle');
+                        if(modeToggle) {
+                            modeToggle.checked = true;
+                            modeToggle.disabled = true;
+                            modeToggle.parentElement.classList.add('opacity-75', 'cursor-not-allowed'); 
+                        }
+
+                        // 3. Ajusta Layout (Esconde Manual / Mostra Check-in)
+                        $('#manual-start-input').addClass('hidden');
+                        $('#manual-end-input').addClass('hidden');
+                        $('#checkin-btn-area').removeClass('hidden');
+                        $('#btn-pre-save').addClass('hidden');
+
+                        // 4. Preenchimento dos Campos
+                        if (data.colaborador_id) {
+                            if (!$('#id_colaborador').find("option[value='" + data.colaborador_id + "']").length) {
+                                var newOption = new Option(data.colaborador_nome, data.colaborador_id, true, true);
+                                $('#id_colaborador').append(newOption);
+                            }
+                            // Seleciona o valor
+                            $('#id_colaborador').val(data.colaborador_id).trigger('change');
+                        }
+
+                        // Local
+                        if (data.local) {
+                            $('#id_local_execucao').val(data.local).trigger('change');
+                        }
+
+                        // Obras / Clientes / Centro de Custo
+                        if (data.projeto_id) {
+                            if (!$('#id_projeto').find("option[value='" + data.projeto_id + "']").length) {
+                                $('#id_projeto').append(new Option(data.projeto_nome, data.projeto_id, true, true));
+                            }
+                            $('#id_projeto').val(data.projeto_id).trigger('change');
+                        }
+                        
+                        if (data.cliente_id) {
+                            if (!$('#id_codigo_cliente').find("option[value='" + data.cliente_id + "']").length) {
+                                $('#id_codigo_cliente').append(new Option(data.cliente_nome, data.cliente_id, true, true));
+                            }
+                            $('#id_codigo_cliente').val(data.cliente_id).trigger('change');
+                        }
+
+                        if (data.cc_id) {
+                            if (!$('#id_centro_custo').find("option[value='" + data.cc_id + "']").length) {
+                                $('#id_centro_custo').append(new Option(data.cc_nome, data.cc_id, true, true));
+                            }
+                            $('#id_centro_custo').val(data.cc_id).trigger('change');
+                        }
+
+                        // Veículo
+                        if (data.veiculo_id) {
+                            $('#id_registrar_veiculo').prop('checked', true).trigger('change');
+                            
+                            // Lógica de veículo tratada sequencialmente
+                            if (data.veiculo_id === 'OUTRO') {
+                                if (!$('#id_veiculo_selecao').find("option[value='OUTRO']").length) {
+                                    $('#id_veiculo_selecao').append(new Option("OUTRO (Manual)", "OUTRO", true, true));
+                                }
+                                $('#id_veiculo_selecao').val('OUTRO').trigger('change');
+                            } else {
+                                if (!$('#id_veiculo_selecao').find("option[value='" + data.veiculo_id + "']").length) {
+                                    $('#id_veiculo_selecao').append(new Option(data.veiculo_nome, data.veiculo_id, true, true));
+                                }
+                                $('#id_veiculo_selecao').val(data.veiculo_id).trigger('change');
+                            }
+                        }
+
+                        // --- 5. TRAVA GERAL (Imediata após preenchimento) ---
+                        // Removemos o setTimeout de 500ms. Agora roda assim que os dados acima forem processados.
+                        
+                        // Desabilita inputs padrão
+                        $('#apontamentoForm input, #apontamentoForm select, #apontamentoForm textarea').prop('disabled', true);
+                        
+                        // Desabilita Select2 especificamente
+                        $('select').prop('disabled', true);
+                        
+                        // Esconde botões de ação auxiliares
+                        $('#btn-add-obra, #btn-add-extra').hide();
+                        $('.select2-selection__clear').hide();
+                        
+                        // Reabilita apenas o que é necessário para o Check-out
+                        $('#btn-action-main').prop('disabled', false).removeClass('opacity-50 cursor-not-allowed'); 
+                        $('#mode-toggle').prop('disabled', true); // Garante que o toggle fique travado
+
+                    } else {
+                        // Lógica quando NÃO tem atividade (Libera tudo)
+                        isCheckedIn = false;
+                        updateButtonState('IN');
+                        
+                        $('#apontamentoForm input, #apontamentoForm textarea, #apontamentoForm select').prop('disabled', false);
+                        $('#btn-add-obra, #btn-add-extra').show();
+                        $('.select2-selection__clear').show();
+
+                        const modeToggle = document.getElementById('mode-toggle');
+                        if(modeToggle) {
+                            modeToggle.disabled = false;
+                            modeToggle.parentElement.classList.remove('opacity-75', 'cursor-not-allowed');
+                            
+                            // Restaura estado visual baseado no Checkbox
+                            if (!modeToggle.checked) {
+                                $('#manual-start-input').removeClass('hidden');
+                                $('#manual-end-input').removeClass('hidden');
+                                $('#btn-pre-save').removeClass('hidden'); 
+                                $('#checkin-btn-area').addClass('hidden'); 
+                            } else {
+                                $('#manual-start-input').addClass('hidden');
+                                $('#manual-end-input').addClass('hidden');
+                                $('#btn-pre-save').addClass('hidden');
+                                $('#checkin-btn-area').removeClass('hidden');
+                            }
+                        } else {
+                            // Fallback se não tiver toggle
+                            $('#manual-start-input').removeClass('hidden');
+                            $('#manual-end-input').removeClass('hidden');
+                            $('#btn-pre-save').removeClass('hidden');
+                        }
+                    }
+                })
+                .fail(() => {
+                    exibirToast("Erro de comunicação ao verificar status.", "erro");
+                })
+                .always(() => {
+                    // *** ESCONDE O LOADER AO FINAL ***
+                    hidePageLoader();
+                });
+            }
+
+            // 1. Alternância de Modo
+            if (modeToggle) {
+                modeToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        // MODO CHECK-IN ATIVO
+                        manualStart.classList.add('hidden');
+                        manualEnd.classList.add('hidden');
+                        checkinArea.classList.remove('hidden');
+                        submitBtn.classList.add('hidden'); // Esconde o salvar manual
+                        
+                        // Verifica status no servidor (API) para ajustar o botão
+                        checkServerStatus();
+                    } else {
+                        // MODO MANUAL ATIVO
+                        manualStart.classList.remove('hidden');
+                        manualEnd.classList.remove('hidden');
+                        checkinArea.classList.add('hidden');
+                        submitBtn.classList.remove('hidden');
+                    }
+                });
+            }
+
+            checkServerStatus();
+
+            // 2. Atualiza visual do botão
+            function updateButtonState(type, timeStr=null) {
+                if (type === 'OUT') {
+                    // Precisa sair
+                    btnAction.className = "w-full md:w-2/3 bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-3 text-lg transition-all active:scale-95";
+                    btnAction.innerHTML = `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg><span>REGISTRAR SAÍDA</span>`;
+                    statusText.innerHTML = `Atividade iniciada às <span class="text-emerald-400">${timeStr}</span>. Finalize para salvar.`;
+                } else {
+                    // Precisa entrar
+                    btnAction.className = "w-full md:w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-lg shadow-lg flex items-center justify-center gap-3 text-lg transition-all active:scale-95";
+                    btnAction.innerHTML = `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg><span>REGISTRAR ENTRADA</span>`;
+                    statusText.innerHTML = "Pronto para iniciar.";
+                }
+            }
+
+            // 3. Ação do Botão Gigante
+            btnAction.addEventListener('click', function() {
+                if (isCheckedIn) {
+                    // === CENÁRIO: SAÍDA (STOP) -> Abre Modal ===
+                    modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10";
+                    modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>`;
+                    
+                    modalTitle.textContent = "Finalizar Atividade?";
+                    modalTitle.classList.remove('text-emerald-400');
+                    modalTitle.classList.add('text-red-400');
+                    
+                    modalContent.innerHTML = `<p class="text-base text-gray-300">Você está prestes a registrar a <span class="font-bold text-white">SAÍDA</span>.</p><p class="text-sm text-gray-400 mt-2">O tempo será contabilizado e a atividade encerrada.</p>`;
+
+                    btnConfirmSubmit.classList.add('hidden');
+                    btnConfirmCheckout.classList.remove('hidden');
+                    modal.classList.remove('hidden');
+
+                } else {
+                    // === CENÁRIO: ENTRADA (START) ===
+                    
+                    // Valida campos obrigatórios antes
+                    if ($('#id_local_execucao').val() === 'INT' && !$('#id_projeto').val() && !$('#id_codigo_cliente').val()) {
+                        return exibirToast('Selecione a Obra ou Cliente.', 'erro');
+                    }
+                    
+                    // *** ATIVA O LOADER ***
+                    showPageLoader("Iniciando Atividade...");
+
+                    const formData = $('#apontamentoForm').serialize();
+                    $.post("{% url 'produtividade:api_iniciar_cronometro' %}", formData)
+                    .done((resp) => {
+                        if (resp.success) {
+                            isCheckedIn = true;
+                            updateButtonState('OUT', resp.inicio);
+                            modeToggle.disabled = true;
+                            exibirToast("Entrada registrada às " + resp.inicio, "sucesso");
+                            checkServerStatus();
+                        } else {
+                            exibirToast("Erro: " + resp.error, "erro");
+                        }
+                    })
+                    .always(() => {
+                        // *** ESCONDE O LOADER ***
+                        hidePageLoader();
+                    });
+                }
+            });
+
+            // 4. Ação do NOVO Botão de Confirmar Saída (Dentro do Modal)
+            btnConfirmCheckout.addEventListener('click', function() {
+                // Fecha o modal
+                modal.classList.add('hidden');
+                
+                // *** ATIVA O LOADER ***
+                showPageLoader("Finalizando Atividade...");
+
+                const colaboradorId = $('#id_colaborador').val();
+                
+                $.post("{% url 'produtividade:api_parar_cronometro' %}", { 
+                    csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
+                    colaborador_id: colaboradorId
+                })
+                .done((resp) => {
+                    if (resp.success) {
+                        exibirToast("Saída registrada com sucesso!", "sucesso");
+                        setTimeout(() => {
+                             window.location.href = "{% url 'produtividade:historico_apontamentos' %}";
+                        }, 1500);
+                        // Nota: Não escondemos o loader aqui se for redirecionar, para evitar "flash" de tela
+                    } else {
+                        exibirToast("Erro: " + resp.error, "erro");
+                        hidePageLoader(); // Esconde se der erro lógico
+                    }
+                })
+                .fail(() => {
+                    exibirToast("Erro de comunicação com o servidor.", "erro");
+                    hidePageLoader(); // Esconde se der erro de rede
+                });
+            });
+
             // ============================================
             // 2. CONFIGURAÇÃO DO SELECT2 E EVENTOS INICIAIS
             // ============================================
@@ -741,13 +1286,22 @@
             window.closeConfirmModal = function() { modal.classList.add('hidden'); }
 
             btnPreSave.addEventListener('click', function() {
-                const is_rateio = (wrapperObras && wrapperObras.children.length > 0);
+                // Atualiza visualmente para garantir que o JS pegue os dados
+                const localVal = $('#id_local_execucao').val();
+                const wrapperRateio = document.getElementById('obras-extras-wrapper');
+                // Verifica se tem filhos (linhas adicionadas)
+                const is_rateio = (wrapperRateio && wrapperRateio.children.length > 0);
+                
+                // Verifica se os inputs de obra estão visíveis na tela
+                // (Isso cobre tanto o caso INT quanto o caso EXT com Centro de Custo alocável)
+                const inputsObraVisiveis = $('#inputs-obra-wrapper').is(':visible');
 
+                // Coleta de dados cruciais
                 const data = {
                     colab: $('#id_colaborador').select2('data')[0]?.text || "",
                     colab_id: $('#id_colaborador').val(),
                     data_pt: document.getElementById('id_data_apontamento').value,
-                    local: document.getElementById('id_local_execucao').value,
+                    local: localVal,
                     obra: $('#id_projeto').select2('data')[0]?.text || "",
                     obra_id: $('#id_projeto').val(),
                     cliente_txt: $('#id_codigo_cliente').select2('data')[0]?.text || "",
@@ -764,26 +1318,70 @@
                 };
 
                 let errors = [];
+
+                // --- VALIDAÇÕES BÁSICAS ---
                 if(!data.colab_id) errors.push("Colaborador é obrigatório.");
                 if(!data.data_pt) errors.push("Data é obrigatória.");
                 if(!data.inicio) errors.push("Hora de Início é obrigatória.");
                 if(!data.fim) errors.push("Hora de Término é obrigatória.");
 
                 if(data.local === 'INT') {
-                    if(!is_rateio) {
-                        if(!data.obra_id && !data.cliente_id) errors.push("Selecione o Código da Obra OU o Código do Cliente.");
-                        if(data.obra_id && data.cliente_id) errors.push("Selecione APENAS UM (Obra ou Cliente), não ambos.");
-                    } else {
-                        // Se rateio está ativo, deve ter linhas
-                        if(wrapperObras.children.length === 0) errors.push("Adicione ao menos uma obra para o rateio.");
+                    // === CASO 1: INTERNO (Sempre exige Obra/Cliente) ===
+                    
+                    if (!data.obra_id && !data.cliente_id) {
+                         errors.push("Selecione o Código da Obra OU o Código do Cliente.");
                     }
+                    if (data.obra_id && data.cliente_id) {
+                        errors.push("Selecione APENAS UM (Obra ou Cliente), não ambos.");
+                    }
+
+                    // Validação de Rateio (Linhas Vazias)
+                    if (is_rateio) {
+                        let temVazio = false;
+                        $(wrapperRateio).find('.input-rateio-target').each(function() {
+                            if (!$(this).val()) temVazio = true;
+                        });
+                        if (temVazio) errors.push("Existem linhas de rateio vazias. Preencha ou remova.");
+                    }
+
                 } else {
-                    if(!data.centro_custo_id) errors.push("Centro de Custo / Justificativa é obrigatório.");
+                    // === CASO 2: EXTERNO (Fora da Obra) ===
+                    
+                    // A. Centro de Custo é a âncora do externo
+                    if(!data.centro_custo_id) {
+                        errors.push("O campo 'Setor / Justificativa (Custo)' é obrigatório.");
+                    }
+
+                    // B. Se os inputs de obra estiverem visíveis (Centro de Custo permite alocação)
+                    if (inputsObraVisiveis) {
+                        
+                        // B1. Valida o Principal
+                        if (!data.obra_id && !data.cliente_id) {
+                            errors.push("Para este Centro de Custo, é necessário informar a Obra ou Cliente.");
+                        }
+                        if (data.obra_id && data.cliente_id) {
+                            errors.push("Selecione apenas um destino (Obra ou Cliente).");
+                        }
+
+                        // B2. Valida o Rateio (A Lógica que faltava!)
+                        if (is_rateio) {
+                            let temVazio = false;
+                            $(wrapperRateio).find('.input-rateio-target').each(function() {
+                                if (!$(this).val()) temVazio = true;
+                            });
+                            // Aqui está a trava que você pediu:
+                            if (temVazio) {
+                                errors.push("Existem linhas de rateio vazias na alocação externa. Preencha ou remova.");
+                            }
+                        }
+                    }
                 }
 
+                // --- VALIDAÇÕES ADICIONAIS ---
                 if(data.em_plantao && !data.data_plantao) errors.push("Selecione a data do Plantão.");
                 if(data.dorme_fora && !data.data_dorme_fora) errors.push("Selecione a data do Dorme-Fora.");
 
+                // Validação Lógica de Horário
                 if (data.data_pt && data.data_pt.includes('/') && data.inicio && data.fim) {
                     const parts = data.data_pt.split('/');
                     const day = parseInt(parts[0]);
@@ -793,33 +1391,52 @@
                     const [hFim, mFim] = data.fim.split(':').map(Number);
                     let dtStart = new Date(year, month, day, hIni, mIni);
                     let dtEnd = new Date(year, month, day, hFim, mFim);
+                    
+                    // Overnight logic
                     if (dtEnd < dtStart) { dtEnd.setDate(dtEnd.getDate() + 1); }
+                    
                     const now = new Date(); 
                     if (dtStart > now) { errors.push("O horário de início não pode ser no futuro."); }
                     if (dtEnd > now) { errors.push("O horário de término não pode ser no futuro."); }
                 }
 
+                // --- EXIBIÇÃO DE ERROS OU SUCESSO ---
                 if(errors.length > 0) {
                     modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10";
                     modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`;
+                    
                     modalTitle.textContent = "Dados Incompletos";
-                    modalTitle.classList.remove('text-emerald-400'); modalTitle.classList.add('text-red-400');
+                    modalTitle.classList.remove('text-emerald-400');
+                    modalTitle.classList.add('text-red-400');
+                    
                     let errorHtml = `<p class="font-bold text-red-300 mb-2">Correções necessárias:</p><ul class="list-disc list-inside space-y-1 text-gray-400">`;
                     errors.forEach(e => errorHtml += `<li>${e}</li>`);
                     errorHtml += `</ul>`;
+                    
                     modalContent.innerHTML = errorHtml;
-                    btnConfirmSubmit.classList.add('hidden');
+                    btnConfirmSubmit.classList.add('hidden'); // Esconde botão de confirmar se houver erro
                 } else {
+                    // DADOS VÁLIDOS -> MOSTRA RESUMO PARA CONFIRMAR
                     modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-900/50 sm:mx-0 sm:h-10 sm:w-10";
                     modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                    
                     modalTitle.textContent = "Confirmação de Envio";
-                    modalTitle.classList.remove('text-red-400'); modalTitle.classList.add('text-emerald-400');
+                    modalTitle.classList.remove('text-red-400');
+                    modalTitle.classList.add('text-emerald-400');
 
                     let contextInfo = "";
                     if(data.local === 'INT') {
-                        if(data.obra_id) contextInfo = `<span class="text-indigo-300 font-bold">Obra:</span> ${data.obra}`;
-                        else if(data.cliente_id) contextInfo = `<span class="text-blue-300 font-bold">Cliente Geral:</span> ${data.cliente_txt}`;
-                        else contextInfo = `<span class="text-gray-400 italic">Múltiplas obras selecionadas</span>`;
+                        if(is_rateio) {
+                            contextInfo = `<span class="text-indigo-300 font-bold">Múltiplas Obras (Rateio):</span><br>`;
+                            // Lista as obras do rateio no resumo
+                            $('#obras-extras-wrapper').find('.input-rateio-target').each(function() {
+                                const txt = $(this).select2('data')[0]?.text;
+                                if(txt) contextInfo += `<span class="text-gray-400 text-xs ml-2">• ${txt}</span><br>`;
+                            });
+                        } else {
+                            if(data.obra_id) contextInfo = `<span class="text-indigo-300 font-bold">Obra:</span> ${data.obra}`;
+                            else if(data.cliente_id) contextInfo = `<span class="text-blue-300 font-bold">Cliente Geral:</span> ${data.cliente_txt}`;
+                        }
                     } else {
                         contextInfo = `<span class="text-orange-300 font-bold">Centro Custo:</span> ${data.centro_custo_txt}`;
                         if(data.obra_id) contextInfo += `<br><span class="text-indigo-300 font-bold text-xs pl-2">↳ Alocado na Obra:</span> ${data.obra}`;
@@ -829,22 +1446,18 @@
                     if(data.em_plantao) extrasInfo += `<span class="bg-red-900/50 text-red-300 px-2 py-0.5 rounded text-xs border border-red-800">PLANTÃO (${data.data_plantao || 'Sem data'})</span> `;
                     if(data.dorme_fora) extrasInfo += `<span class="bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded text-xs border border-purple-800">DORME-FORA (${data.data_dorme_fora})</span>`;
                     
-                    let rateioWarning = "";
-                    if(is_rateio) {
-                        rateioWarning = `<p class="text-indigo-400 font-bold mt-2 italic tracking-tighter uppercase text-[10px] bg-indigo-900/20 p-1 rounded border border-indigo-800/50 text-center">⚠ Modo Rateio Ativado: O tempo será dividido entre as obras selecionadas.</p>`;
-                    }
-
                     let html = `<div class="bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-2 text-sm">
                         <p><span class="text-gray-500">Colaborador:</span> <span class="text-white font-bold text-lg block">${data.colab}</span></p>
                         <p><span class="text-gray-500">Data:</span> <span class="text-white font-bold">${data.data_pt}</span></p>
                         <div class="py-2 border-y border-slate-700 my-2 space-y-1"><p>${contextInfo}</p></div>
                         <p><span class="text-gray-500">Horário:</span> <span class="text-emerald-400 font-mono font-bold text-base">${data.inicio}</span> até <span class="text-red-400 font-mono font-bold text-base">${data.fim}</span></p>
                         <div class="mt-2">${extrasInfo}</div>
-                        ${rateioWarning}
                         </div>`;
+                    
                     modalContent.innerHTML = html;
-                    btnConfirmSubmit.classList.remove('hidden');
+                    btnConfirmSubmit.classList.remove('hidden'); // Mostra botão para enviar de verdade
                 }
+                
                 modal.classList.remove('hidden');
             });
 
@@ -893,6 +1506,9 @@
                 
                 // Função para envio final (AJAX)
                 function submitFinalForm() {
+                    // *** ATIVA O LOADER ***
+                    showPageLoader("Salvando Registro...");
+
                     const formData = new FormData(mainForm);
                     fetch(window.location.href, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(response => { if (response.redirected) { window.location.href = response.url; return; } return response.text().then(html => ({ html, url: response.url })); })
@@ -903,19 +1519,32 @@
                         const errorDiv = doc.querySelector('#server-error-data');
                         
                         if (errorDiv) {
+                            // Se houve erro no formulário (Django backend validation)
                             const errorMsg = errorDiv.innerHTML;
                             modalIconContainer.className = "mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10";
                             modalIconContainer.innerHTML = `<svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`;
+                            
                             modalTitle.textContent = "Erro no Registro";
                             modalTitle.classList.remove('text-emerald-400'); modalTitle.classList.add('text-red-400');
                             modalContent.innerHTML = `<div class="text-red-300 bg-red-900/20 p-3 rounded border border-red-800">${errorMsg}</div>`;
-                            btnConfirmSubmit.classList.add('hidden'); btnConfirmSubmit.textContent = "Confirmar e Enviar"; btnConfirmSubmit.disabled = false;
-                        } else { document.open(); document.write(result.html); document.close(); }
+                            
+                            btnConfirmSubmit.classList.add('hidden'); 
+                            btnConfirmSubmit.textContent = "Confirmar e Enviar"; 
+                            btnConfirmSubmit.disabled = false;
+                            
+                            // *** ESCONDE O LOADER PARA MOSTRAR O ERRO NO MODAL ***
+                            hidePageLoader();
+                        } else { 
+                            // Sucesso (renderiza a página retornada/redirecionada)
+                            document.open(); document.write(result.html); document.close(); 
+                        }
                     })
                     .catch(err => { 
                         alert("Erro de comunicação."); 
                         btnConfirmSubmit.disabled = false; 
                         btnConfirmSubmit.textContent = "Confirmar e Enviar"; 
+                        // *** ESCONDE O LOADER EM CASO DE ERRO FATAL ***
+                        hidePageLoader();
                     });
                 }
 
@@ -946,6 +1575,28 @@
                 }
             });
         });
+
+        function abrirNotificacaoModal(id, titulo, msg, resposta) {
+            document.getElementById('notif-titulo').innerText = titulo;
+            document.getElementById('notif-mensagem').innerText = msg;
+            const textarea = document.getElementById('notif-resposta');
+            textarea.value = resposta;
+            
+            // Se já tiver resposta, bloqueia edição (opcional, remova 'disabled' se quiser permitir editar)
+            if(resposta) {
+                textarea.disabled = true;
+                textarea.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                textarea.disabled = false;
+                textarea.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Define a URL correta no form
+            document.getElementById('form-responder-notificacao').action = `/produtividade/notificacoes/responder/${id}/`;
+            
+            document.getElementById('modal-ler-notificacao').classList.remove('hidden');
+        }
+
     </script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 from django.contrib import admin
-from .models import Projeto, Colaborador, Veiculo, Apontamento, Setor, CodigoCliente, CentroCusto
+from django.utils.html import format_html
+from .models import Projeto, Colaborador, Veiculo, Apontamento, Setor, CodigoCliente, CentroCusto, Feriado, LogAuditoria
 
 # ==============================================================================
 # CADASTROS AUXILIARES
-# Tabelas de apoio para o funcionamento do sistema (Obras, Pessoas, Ativos)
 # ==============================================================================
 
 @admin.register(Setor)
@@ -43,13 +43,10 @@ class ColaboradorAdmin(admin.ModelAdmin):
     Cadastro de funcionários e prestadores de serviço. 
     Permite vincular o colaborador à conta de usuário e definir setores gerenciados.
     """
-    list_display = ('id_colaborador', 'nome_completo', 'cargo', 'setor', 'user_account')
-    search_fields = ('nome_completo', 'id_colaborador')
-    list_filter = ('cargo', 'setor')
-    
-    fields = ('id_colaborador', 'nome_completo', 'cargo', 'setor', 'setores_gerenciados', 'user_account')
-    
-    # Interface visual para selecionar múltiplos setores (Caixa de seleção dupla)
+    list_display = ('id_colaborador', 'nome_completo', 'cargo', 'setor', 'cidade', 'uf', 'telefone', 'user_account')
+    search_fields = ('nome_completo', 'id_colaborador', 'cidade', 'user_account__username')
+    list_filter = ('cargo', 'setor', 'uf', 'cidade')
+    fields = ('id_colaborador', 'nome_completo', 'cargo', 'setor', 'cidade', 'uf', 'telefone', 'setores_gerenciados', 'user_account')
     filter_horizontal = ('setores_gerenciados',)
 
 
@@ -59,10 +56,15 @@ class VeiculoAdmin(admin.ModelAdmin):
     list_display = ('placa', 'descricao')
     search_fields = ('placa', 'descricao')
 
+@admin.register(Feriado)
+class FeriadoAdmin(admin.ModelAdmin):
+    """Gerenciamento de feriados cadastrados no sistema."""
+    list_display = ('data', 'cidade', 'uf', 'descricao')
+    search_fields = ('cidade', 'descricao')
+    list_filter = ('uf', 'cidade', 'data')
 
 # ==============================================================================
 # REGISTRO PRINCIPAL (CORE)
-# Tabela onde ficam armazenados os apontamentos de horas e produtividade
 # ==============================================================================
 
 @admin.register(Apontamento)
@@ -71,7 +73,6 @@ class ApontamentoAdmin(admin.ModelAdmin):
     Visão geral dos apontamentos de produtividade.
     Configurado para alta performance com muitos registros e facilidade de auditoria.
     """
-    # Navegação rápida por data no topo da lista
     date_hierarchy = 'data_apontamento'
     
     list_display = (
@@ -103,14 +104,9 @@ class ApontamentoAdmin(admin.ModelAdmin):
         'ocorrencias'    
     )
 
-    # Otimização: Transforma dropdowns em campos de busca (AJAX)
-    # Requer que os Admins relacionados tenham 'search_fields' definidos
     autocomplete_fields = ['colaborador', 'projeto', 'codigo_cliente', 'centro_custo', 'veiculo']
-
-    # Campos que não devem ser editados manualmente para manter integridade
     readonly_fields = ('data_registro', 'registrado_por')
 
-    # Organização visual do formulário de edição
     fieldsets = (
         ('Identificação e Tempo', {
             'fields': (
@@ -144,11 +140,9 @@ class ApontamentoAdmin(admin.ModelAdmin):
                 ('motivo_ajuste', 'status_ajuste'),
                 ('registrado_por', 'data_registro')
             ),
-            'classes': ('collapse',) # Esconde essa seção por padrão
+            'classes': ('collapse',)
         }),
     )
-
-    # --- Métodos Personalizados para Listagem ---
 
     def get_tipo_local(self, obj):
         """Retorna a descrição legível do local de execução."""
@@ -164,7 +158,6 @@ class ApontamentoAdmin(admin.ModelAdmin):
                 return f"Cli: {obj.codigo_cliente}"
             return "—"
         elif obj.local_execucao == 'EXT':
-            # Se for externo mas tiver obra alocada, mostra a justificativa + obra/cliente
             base = str(obj.centro_custo) if obj.centro_custo else "—"
             if obj.projeto:
                 return f"{base} -> Obra: {obj.projeto.codigo}"
@@ -173,3 +166,37 @@ class ApontamentoAdmin(admin.ModelAdmin):
             return base
         return "—"
     get_detalhe_local.short_description = "Local / Detalhe"
+
+
+# ==============================================================================
+# LOG DE AUDITORIA
+# ==============================================================================
+
+@admin.register(LogAuditoria)
+class LogAuditoriaAdmin(admin.ModelAdmin):
+    list_display = ('data_hora', 'usuario', 'acao', 'modelo_afetado', 'ip_address')
+    list_filter = ('acao', 'data_hora', 'modelo_afetado')
+    search_fields = ('detalhes', 'usuario__username', 'usuario__first_name', 'objeto_id')
+    readonly_fields = [field.name for field in LogAuditoria._meta.fields]
+
+    def get_acao_colorida(self, obj):
+        colors = {
+            'LOGIN': 'green',
+            'LOGOUT': 'gray',
+            'LOGIN_FALHA': 'red',
+            'CRIACAO': 'blue',
+            'EDICAO': 'orange',
+            'EXCLUSAO': 'darkred',
+        }
+        color = colors.get(obj.acao, 'black')
+        return format_html('<span style="color: {}; font-weight: bold;">{}</span>', color, obj.get_acao_display())
+    get_acao_colorida.short_description = 'Ação'
+    
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

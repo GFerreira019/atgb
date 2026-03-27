@@ -34,15 +34,6 @@ O sistema implementa uma hierarquia de acesso robusta para garantir a segurança
 * **GESTOR:** Envia formulários apenas para si, mas possui visão gerencial (leitura) sobre sua equipe.
 * **OPERACIONAL:** Acesso restrito. Pode apenas registrar e visualizar seu próprio histórico.
 
-## Visão de Futuro & Roadmap
-
-Este projeto é o alicerce (MVP) para um ecossistema maior de gestão de obras. Os próximos passos estratégicos incluem:
-
-1.  **Mobile First:** Desenvolvimento de PWA ou App Nativo para uso offline em obras sem sinal.
-2.  **Integração com Cronogramas:** Vínculo direto entre as horas apontadas e o cronograma físico da obra (MS Project).
-3.  **Dashboard em Tempo Real:** Visualização do avanço físico x financeiro.
-4.  **Inteligência de Dados:** Análise de métricas para refinar orçamentos futuros (Orçado vs. Realizado).
-
 ## Tecnologias Utilizadas
 
 * **Backend:** Python 3, Django 5

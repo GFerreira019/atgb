@@ -39,10 +39,13 @@ O sistema implementa uma hierarquia de acesso robusta para garantir a segurança
 * **Backend:** Python 3, Django 5
 * **Frontend:** HTML5, TailwindCSS (CDN), JavaScript Moderno
 * **Infraestrutura:** Google Cloud Platform (Compute Engine), Nginx, Gunicorn
+* **Serviços de Produção:**
+    * `Redis` (Gerenciamento de Cache e Performance)
+    * `Sentry` (Monitoramento de Erros e Observabilidade)
 * **Bibliotecas:**
     * `Select2` (Selects pesquisáveis via AJAX)
     * `OpenPyXL` (Geração de relatórios Excel)
-* **Banco de Dados:** SQLite (Desenvolvimento) / Configuração pronta para PostgreSQL (Produção)
+* **Banco de Dados:** SQLite (Desenvolvimento) / Configuração pronta para PostgreSQL/SQL Server (Produção)
 
 ## Como Executar o Projeto
 
